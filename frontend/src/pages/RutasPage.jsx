@@ -9,6 +9,29 @@ function airportOptions(airports = []) {
     }));
 }
 
+function countryOptions(airports = []) {
+    return Array.from(new Set((airports ?? []).map((airport) => airport.pais).filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right))
+        .map((country) => ({
+            value: country,
+            label: country,
+        }));
+}
+
+function airportsByCountry(airports = [], country = '') {
+    if (!country) {
+        return [];
+    }
+
+    return airports.filter((airport) => airport.pais === country);
+}
+
+function firstAirportValue(airports = [], country = '') {
+    const match = airportsByCountry(airports, country)[0];
+
+    return match ? String(match.id) : '';
+}
+
 export default function RutasPage() {
     return (
         <ResourceManager
@@ -78,16 +101,40 @@ export default function RutasPage() {
                     placeholder: 'VVI-LPB',
                 },
                 {
+                    name: 'pais_origen',
+                    label: 'Pais de origen',
+                    type: 'select',
+                    options: (catalogs) => countryOptions(catalogs.aeropuertos),
+                    placeholder: 'Seleccione un pais',
+                    onChange: (value, _nextState, catalogs) => ({
+                        aeropuerto_origen_id: firstAirportValue(catalogs.aeropuertos, value),
+                    }),
+                },
+                {
                     name: 'aeropuerto_origen_id',
                     label: 'Aeropuerto de origen',
                     type: 'select',
-                    options: (catalogs) => airportOptions(catalogs.aeropuertos),
+                    options: (catalogs, formData) =>
+                        airportOptions(airportsByCountry(catalogs.aeropuertos, formData.pais_origen)),
+                    placeholder: 'Seleccione un aeropuerto de origen',
+                },
+                {
+                    name: 'pais_destino',
+                    label: 'Pais de destino',
+                    type: 'select',
+                    options: (catalogs) => countryOptions(catalogs.aeropuertos),
+                    placeholder: 'Seleccione un pais',
+                    onChange: (value, _nextState, catalogs) => ({
+                        aeropuerto_destino_id: firstAirportValue(catalogs.aeropuertos, value),
+                    }),
                 },
                 {
                     name: 'aeropuerto_destino_id',
                     label: 'Aeropuerto de destino',
                     type: 'select',
-                    options: (catalogs) => airportOptions(catalogs.aeropuertos),
+                    options: (catalogs, formData) =>
+                        airportOptions(airportsByCountry(catalogs.aeropuertos, formData.pais_destino)),
+                    placeholder: 'Seleccione un aeropuerto de destino',
                 },
                 {
                     name: 'distancia_km',
@@ -112,10 +159,20 @@ export default function RutasPage() {
             ]}
             initialValues={{
                 activa: true,
+                pais_origen: 'Bolivia',
+                pais_destino: 'Chile',
             }}
             transformFormData={(item) => ({
                 codigo: item.codigo ?? '',
+                pais_origen:
+                    item.aeropuerto_origen?.pais
+                    ?? item.aeropuertoOrigen?.pais
+                    ?? '',
                 aeropuerto_origen_id: String(item.aeropuerto_origen_id ?? ''),
+                pais_destino:
+                    item.aeropuerto_destino?.pais
+                    ?? item.aeropuertoDestino?.pais
+                    ?? '',
                 aeropuerto_destino_id: String(item.aeropuerto_destino_id ?? ''),
                 distancia_km: String(item.distancia_km ?? ''),
                 duracion_minutos: String(item.duracion_minutos ?? ''),

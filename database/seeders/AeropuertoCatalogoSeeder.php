@@ -23,6 +23,7 @@ class AeropuertoCatalogoSeeder extends Seeder
             ['nombre' => 'Aeropuerto Rodriguez Ballon', 'codigo_iata' => 'AQP', 'codigo_icao' => 'SPQU', 'ciudad' => 'Arequipa', 'pais' => 'Peru', 'latitud' => -16.3411000, 'longitud' => -71.5831000],
             ['nombre' => 'Aeropuerto Arturo Merino Benitez', 'codigo_iata' => 'SCL', 'codigo_icao' => 'SCEL', 'ciudad' => 'Santiago', 'pais' => 'Chile', 'latitud' => -33.3929000, 'longitud' => -70.7858000],
             ['nombre' => 'Aeropuerto Andres Sabella', 'codigo_iata' => 'ANF', 'codigo_icao' => 'SCFA', 'ciudad' => 'Antofagasta', 'pais' => 'Chile', 'latitud' => -23.4445000, 'longitud' => -70.4451000],
+            ['nombre' => 'Aeropuerto Diego Aracena', 'codigo_iata' => 'IQQ', 'codigo_icao' => 'SCDA', 'ciudad' => 'Iquique', 'pais' => 'Chile', 'latitud' => -20.5352000, 'longitud' => -70.1813000],
             ['nombre' => 'Aeropuerto Internacional El Tepual', 'codigo_iata' => 'PMC', 'codigo_icao' => 'SCTE', 'ciudad' => 'Puerto Montt', 'pais' => 'Chile', 'latitud' => -41.4389000, 'longitud' => -73.0939000],
             ['nombre' => 'Aeropuerto Internacional Ministro Pistarini', 'codigo_iata' => 'EZE', 'codigo_icao' => 'SAEZ', 'ciudad' => 'Buenos Aires', 'pais' => 'Argentina', 'latitud' => -34.8222000, 'longitud' => -58.5358000],
             ['nombre' => 'Aeroparque Jorge Newbery', 'codigo_iata' => 'AEP', 'codigo_icao' => 'SABE', 'ciudad' => 'Buenos Aires', 'pais' => 'Argentina', 'latitud' => -34.5592000, 'longitud' => -58.4156000],

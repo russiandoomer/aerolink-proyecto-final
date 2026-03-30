@@ -155,11 +155,22 @@ export default function ResourceManager({
         setPage(1);
     }
 
-    function handleFieldChange(name, value) {
-        setFormData((previous) => ({
-            ...previous,
-            [name]: value,
-        }));
+    function handleFieldChange(field, value) {
+        setFormData((previous) => {
+            const nextState = {
+                ...previous,
+                [field.name]: value,
+            };
+
+            if (typeof field.onChange === 'function') {
+                return {
+                    ...nextState,
+                    ...field.onChange(value, nextState, catalogs),
+                };
+            }
+
+            return nextState;
+        });
     }
 
     function handleEdit(row) {
@@ -249,7 +260,7 @@ export default function ResourceManager({
                         type="checkbox"
                         checked={Boolean(value)}
                         onChange={(event) =>
-                            handleFieldChange(field.name, event.target.checked)
+                            handleFieldChange(field, event.target.checked)
                         }
                     />
                     <span>{field.label}</span>
@@ -264,7 +275,7 @@ export default function ResourceManager({
                     <select
                         value={value}
                         onChange={(event) =>
-                            handleFieldChange(field.name, event.target.value)
+                            handleFieldChange(field, event.target.value)
                         }
                     >
                         <option value="">
@@ -282,7 +293,7 @@ export default function ResourceManager({
                         value={value}
                         placeholder={field.placeholder ?? ''}
                         onChange={(event) =>
-                            handleFieldChange(field.name, event.target.value)
+                            handleFieldChange(field, event.target.value)
                         }
                     />
                 ) : (
@@ -291,7 +302,7 @@ export default function ResourceManager({
                         value={value}
                         placeholder={field.placeholder ?? ''}
                         onChange={(event) =>
-                            handleFieldChange(field.name, event.target.value)
+                            handleFieldChange(field, event.target.value)
                         }
                     />
                 )}
