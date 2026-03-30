@@ -844,6 +844,267 @@ a {
     animation: spin 1s linear infinite;
 }
 
+.simulation-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.simulation-panel,
+.simulation-map-panel {
+    padding: 1.5rem;
+}
+
+.simulation-form-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.simulation-field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.simulation-field span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.simulation-field select {
+    appearance: none;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 16px;
+    background: rgba(248, 250, 252, 0.9);
+    color: var(--text);
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.simulation-field select:focus {
+    outline: none;
+    border-color: rgba(16, 48, 79, 0.4);
+    box-shadow: 0 0 0 4px rgba(16, 48, 79, 0.08);
+}
+
+.simulation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-top: 1.5rem;
+}
+
+.button-primary,
+.button-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    border-radius: 999px;
+    padding: 0.88rem 1.15rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+}
+
+.button-primary {
+    background: linear-gradient(135deg, #0f2844, #1d4ed8);
+    color: #f8fafc;
+    box-shadow: 0 18px 32px rgba(15, 35, 58, 0.14);
+}
+
+.button-secondary {
+    background: rgba(226, 232, 240, 0.76);
+    color: #0f2844;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.button-primary:hover,
+.button-secondary:hover {
+    transform: translateY(-1px);
+}
+
+.button-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.simulation-status-card {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #0f1d2f, #1d324b);
+    color: #f8fafc;
+}
+
+.simulation-status-card div {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.simulation-status-card small {
+    color: rgba(226, 232, 240, 0.72);
+}
+
+.simulation-progress-panel {
+    display: grid;
+    gap: 0.9rem;
+    margin-top: 1.25rem;
+}
+
+.simulation-progress-copy {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.simulation-progress-copy small {
+    color: var(--text-soft);
+    line-height: 1.6;
+}
+
+.simulation-progress-bar {
+    width: 100%;
+    height: 14px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(148, 163, 184, 0.18);
+}
+
+.simulation-progress-bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #38bdf8, #2563eb, #0f2844);
+    transition: width 0.24s ease;
+}
+
+.simulation-board {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background:
+        radial-gradient(circle at 18% 18%, rgba(56, 189, 248, 0.16), transparent 28%),
+        radial-gradient(circle at 82% 78%, rgba(34, 197, 94, 0.14), transparent 25%),
+        linear-gradient(180deg, #091321, #102133 56%, #0e1c2e);
+    min-height: 560px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 36px rgba(15, 35, 58, 0.16);
+}
+
+.simulation-board-empty {
+    display: grid;
+    place-items: center;
+    min-height: 320px;
+    padding: 1.5rem;
+    color: rgba(226, 232, 240, 0.78);
+    text-align: center;
+}
+
+.simulation-board__meta {
+    position: absolute;
+    inset: 1rem 1rem auto;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.simulation-board__meta span {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.48);
+    color: rgba(226, 232, 240, 0.94);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.simulation-board__svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.simulation-board__background {
+    fill: rgba(2, 6, 23, 0.18);
+}
+
+.simulation-board__grid {
+    stroke: rgba(148, 163, 184, 0.16);
+    stroke-width: 1;
+}
+
+.simulation-board__route {
+    stroke: url(#routeGradient);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 12 10;
+    opacity: 0.62;
+}
+
+.simulation-board__route-completed {
+    stroke: url(#completedRouteGradient);
+    stroke-width: 6;
+    stroke-dasharray: none;
+    opacity: 1;
+}
+
+.simulation-board__marker {
+    stroke: rgba(248, 250, 252, 0.88);
+    stroke-width: 2.5;
+}
+
+.simulation-board__marker-origin {
+    fill: #22c55e;
+}
+
+.simulation-board__marker-destination {
+    fill: #f97316;
+}
+
+.simulation-board__marker-plane-glow {
+    fill: rgba(56, 189, 248, 0.14);
+    stroke: none;
+}
+
+.simulation-board__plane-core {
+    fill: rgba(15, 23, 42, 0.92);
+    stroke: rgba(56, 189, 248, 0.85);
+    stroke-width: 2;
+}
+
+.simulation-board__plane-icon {
+    fill: #e2e8f0;
+    font-size: 22px;
+}
+
+.simulation-board__label {
+    fill: rgba(15, 23, 42, 0.64);
+    stroke: rgba(148, 163, 184, 0.16);
+}
+
+.simulation-board__label-code {
+    fill: #f8fafc;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.simulation-board__label-city {
+    fill: rgba(226, 232, 240, 0.74);
+    font-size: 12px;
+}
+
 .not-found-page {
     min-height: 100vh;
     padding: 2rem;
@@ -892,6 +1153,10 @@ a {
     .chart-layout {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    .simulation-layout {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 920px) {
@@ -936,6 +1201,10 @@ a {
         min-width: 0;
         width: 100%;
     }
+
+    .simulation-status-card {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 640px) {
@@ -963,5 +1232,19 @@ a {
     .data-table th,
     .data-table td {
         min-width: 120px;
+    }
+
+    .simulation-board {
+        min-height: 420px;
+    }
+
+    .simulation-board__meta {
+        position: static;
+        padding: 1rem 1rem 0;
+    }
+
+    .simulation-board__meta span {
+        flex: 1;
+        justify-content: center;
     }
 }

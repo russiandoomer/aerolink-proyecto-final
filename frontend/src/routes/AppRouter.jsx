@@ -9,6 +9,7 @@ const ReservasPage = lazy(() => import('../pages/ReservasPage'));
 const PasajerosPage = lazy(() => import('../pages/PasajerosPage'));
 const RutasPage = lazy(() => import('../pages/RutasPage'));
 const AeropuertosPage = lazy(() => import('../pages/AeropuertosPage'));
+const SimulacionPage = lazy(() => import('../pages/SimulacionPage'));
 const FlotaPage = lazy(() => import('../pages/FlotaPage'));
 const AerolineasPage = lazy(() => import('../pages/AerolineasPage'));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
@@ -24,6 +25,7 @@ export default function AppRouter() {
                     <Route path="/pasajeros" element={<PasajerosPage />} />
                     <Route path="/rutas" element={<RutasPage />} />
                     <Route path="/aeropuertos" element={<AeropuertosPage />} />
+                    <Route path="/simulacion" element={<SimulacionPage />} />
                     <Route path="/flota" element={<FlotaPage />} />
                     <Route path="/aerolineas" element={<AerolineasPage />} />
                     <Route path="/dashboard" element={<Navigate to="/" replace />} />

@@ -55,3 +55,9 @@ export async function fetchDashboardSummary() {
 
     return response.data?.data ?? response.data;
 }
+
+export async function fetchAirportCatalog() {
+    const response = await http.get('/aeropuertos/catalogo');
+
+    return response.data?.data ?? response.data;
+}

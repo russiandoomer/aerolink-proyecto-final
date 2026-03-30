@@ -10,6 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             EstadoVueloSeeder::class,
+            AeropuertoCatalogoSeeder::class,
             DatosDemoSeeder::class,
         ]);
     }

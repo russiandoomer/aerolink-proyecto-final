@@ -10,6 +10,46 @@ use Illuminate\Validation\Rule;
 
 class AeropuertoController extends Controller
 {
+    public function catalogo(Request $request): JsonResponse
+    {
+        $query = Aeropuerto::query()
+            ->select([
+                'id',
+                'nombre',
+                'codigo_iata',
+                'codigo_icao',
+                'ciudad',
+                'pais',
+                'latitud',
+                'longitud',
+                'activo',
+            ])
+            ->whereNotNull('latitud')
+            ->whereNotNull('longitud');
+
+        if (! $request->has('activo') || $request->boolean('activo')) {
+            $query->where('activo', true);
+        }
+
+        $airports = $query
+            ->orderBy('pais')
+            ->orderBy('ciudad')
+            ->get();
+
+        $countries = $airports
+            ->pluck('pais')
+            ->filter()
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'countries' => $countries,
+                'airports' => $airports,
+            ],
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Aeropuerto::query()->withCount(['rutasOrigen', 'rutasDestino']);

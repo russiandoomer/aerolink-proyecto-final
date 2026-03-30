@@ -2,6 +2,7 @@ import {
     Building2,
     LayoutDashboard,
     Map,
+    Navigation,
     Plane,
     PlaneTakeoff,
     Route,
@@ -45,6 +46,12 @@ export const navigationItems = [
         to: '/aeropuertos',
         icon: Map,
         description: 'Puntos de operacion',
+    },
+    {
+        label: 'Simulacion',
+        to: '/simulacion',
+        icon: Navigation,
+        description: 'Recorrido visual',
     },
     {
         label: 'Flota',

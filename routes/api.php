@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::get('/dashboard/resumen', [DashboardController::class, 'resumen']);
+Route::get('/aeropuertos/catalogo', [AeropuertoController::class, 'catalogo']);
 
 Route::apiResource('aerolineas', AerolineaController::class)->only(['index', 'show']);
 Route::apiResource('aeropuertos', AeropuertoController::class)->only(['index', 'show']);

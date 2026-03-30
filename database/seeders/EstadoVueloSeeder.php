@@ -11,7 +11,7 @@ class EstadoVueloSeeder extends Seeder
     {
         $timestamp = now();
 
-        DB::table('estados_vuelo')->insert([
+        DB::table('estados_vuelo')->upsert([
             [
                 'nombre' => 'Programado',
                 'codigo' => 'programado',
@@ -66,6 +66,6 @@ class EstadoVueloSeeder extends Seeder
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp,
             ],
-        ]);
+        ], ['codigo'], ['nombre', 'color', 'orden', 'descripcion', 'updated_at']);
     }
 }
