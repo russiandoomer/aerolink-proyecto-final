@@ -1,13 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
-import {
-    MapContainer,
-    Marker,
-    Polyline,
-    TileLayer,
-    Tooltip,
-    useMap,
-} from 'react-leaflet';
 
 function getPosition(airport) {
     return [Number(airport.latitud), Number(airport.longitud)];
@@ -66,54 +58,172 @@ function buildPlaneIcon(angle) {
     });
 }
 
-function FitRouteBounds({ originPosition, destinationPosition }) {
-    const map = useMap();
-
-    useEffect(() => {
-        if (!originPosition || !destinationPosition) {
-            return;
-        }
-
-        const bounds = L.latLngBounds([originPosition, destinationPosition]);
-
-        map.fitBounds(bounds.pad(0.45), {
-            animate: true,
-            duration: 1.1,
-            padding: [32, 32],
-        });
-    }, [map, originPosition, destinationPosition]);
-
-    return null;
-}
-
-function EnsureMapReady() {
-    const map = useMap();
-
-    useEffect(() => {
-        const timers = [
-            setTimeout(() => map.invalidateSize(), 80),
-            setTimeout(() => map.invalidateSize(), 240),
-            setTimeout(() => map.invalidateSize(), 520),
-        ];
-
-        const onResize = () => map.invalidateSize();
-
-        window.addEventListener('resize', onResize);
-
-        return () => {
-            timers.forEach((timer) => clearTimeout(timer));
-            window.removeEventListener('resize', onResize);
-        };
-    }, [map]);
-
-    return null;
-}
-
 export default function SimulationMap({
     originAirport,
     destinationAirport,
     progress,
 }) {
+    const mapElementRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const overlayLayerRef = useRef(null);
+
+    const originPosition = useMemo(
+        () => (originAirport ? getPosition(originAirport) : null),
+        [originAirport]
+    );
+
+    const destinationPosition = useMemo(
+        () => (destinationAirport ? getPosition(destinationAirport) : null),
+        [destinationAirport]
+    );
+
+    const planePosition = useMemo(
+        () =>
+            originAirport && destinationAirport
+                ? interpolatePosition(originAirport, destinationAirport, progress)
+                : null,
+        [originAirport, destinationAirport, progress]
+    );
+
+    const planeAngle = useMemo(
+        () =>
+            originAirport && destinationAirport
+                ? calculateAngle(originAirport, destinationAirport)
+                : 0,
+        [originAirport, destinationAirport]
+    );
+
+    useEffect(() => {
+        if (!mapElementRef.current || mapInstanceRef.current) {
+            return;
+        }
+
+        const map = L.map(mapElementRef.current, {
+            zoomControl: true,
+            scrollWheelZoom: true,
+            worldCopyJump: true,
+        }).setView([-16.5, -64.9], 4);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            maxZoom: 18,
+        }).addTo(map);
+
+        overlayLayerRef.current = L.layerGroup().addTo(map);
+        mapInstanceRef.current = map;
+
+        const resizeMap = () => map.invalidateSize();
+        const resizeObserver =
+            typeof ResizeObserver !== 'undefined'
+                ? new ResizeObserver(() => resizeMap())
+                : null;
+
+        if (resizeObserver && mapElementRef.current) {
+            resizeObserver.observe(mapElementRef.current);
+        }
+
+        const timers = [
+            setTimeout(resizeMap, 80),
+            setTimeout(resizeMap, 240),
+            setTimeout(resizeMap, 520),
+        ];
+
+        window.addEventListener('resize', resizeMap);
+
+        return () => {
+            timers.forEach((timer) => clearTimeout(timer));
+            window.removeEventListener('resize', resizeMap);
+            resizeObserver?.disconnect();
+            map.remove();
+            mapInstanceRef.current = null;
+            overlayLayerRef.current = null;
+        };
+    }, []);
+
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        const overlayLayer = overlayLayerRef.current;
+
+        if (!map || !overlayLayer || !originPosition || !destinationPosition || !planePosition) {
+            return;
+        }
+
+        overlayLayer.clearLayers();
+
+        const fullRoute = L.polyline([originPosition, destinationPosition], {
+            color: '#0ea5e9',
+            weight: 4,
+            opacity: 0.68,
+            dashArray: '10 12',
+        });
+
+        const completedRoute = L.polyline([originPosition, planePosition], {
+            color: '#f8fafc',
+            weight: 5,
+            opacity: 0.94,
+        });
+
+        const originMarker = L.marker(originPosition, {
+            icon: buildAirportIcon('origin', originAirport.codigo_iata),
+        }).bindTooltip(
+            `${originAirport.nombre} · ${originAirport.ciudad}, ${originAirport.pais}`,
+            {
+                direction: 'top',
+                offset: [0, -14],
+                className: 'simulation-tooltip',
+            }
+        );
+
+        const destinationMarker = L.marker(destinationPosition, {
+            icon: buildAirportIcon('destination', destinationAirport.codigo_iata),
+        }).bindTooltip(
+            `${destinationAirport.nombre} · ${destinationAirport.ciudad}, ${destinationAirport.pais}`,
+            {
+                direction: 'top',
+                offset: [0, -14],
+                className: 'simulation-tooltip',
+            }
+        );
+
+        const planeMarker = L.marker(planePosition, {
+            icon: buildPlaneIcon(planeAngle),
+        }).bindTooltip(`Vuelo en ruta · ${Math.round(progress * 100)}%`, {
+            direction: 'top',
+            offset: [0, -10],
+            className: 'simulation-tooltip',
+        });
+
+        overlayLayer.addLayer(fullRoute);
+        overlayLayer.addLayer(completedRoute);
+        overlayLayer.addLayer(originMarker);
+        overlayLayer.addLayer(destinationMarker);
+        overlayLayer.addLayer(planeMarker);
+
+        const bounds = L.latLngBounds([originPosition, destinationPosition]);
+        map.fitBounds(bounds.pad(0.45), {
+            animate: true,
+            duration: 1.1,
+            padding: [32, 32],
+        });
+
+        const timers = [
+            setTimeout(() => map.invalidateSize(), 40),
+            setTimeout(() => map.invalidateSize(), 180),
+        ];
+
+        return () => {
+            timers.forEach((timer) => clearTimeout(timer));
+        };
+    }, [
+        originAirport,
+        destinationAirport,
+        originPosition,
+        destinationPosition,
+        planePosition,
+        planeAngle,
+        progress,
+    ]);
+
     if (!originAirport || !destinationAirport) {
         return (
             <div className="simulation-board simulation-board-empty">
@@ -122,15 +232,6 @@ export default function SimulationMap({
         );
     }
 
-    const originPosition = getPosition(originAirport);
-    const destinationPosition = getPosition(destinationAirport);
-    const planePosition = interpolatePosition(originAirport, destinationAirport, progress);
-    const planeAngle = calculateAngle(originAirport, destinationAirport);
-
-    const originIcon = buildAirportIcon('origin', originAirport.codigo_iata);
-    const destinationIcon = buildAirportIcon('destination', destinationAirport.codigo_iata);
-    const planeIcon = buildPlaneIcon(planeAngle);
-
     return (
         <div className="simulation-board">
             <div className="simulation-board__meta">
@@ -138,62 +239,12 @@ export default function SimulationMap({
                 <span>{destinationAirport.codigo_iata}</span>
             </div>
 
-            <MapContainer
+            <div
+                ref={mapElementRef}
                 className="simulation-board__map"
-                center={originPosition}
-                zoom={4}
-                scrollWheelZoom={true}
-                zoomControl={true}
-            >
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-
-                <EnsureMapReady />
-
-                <FitRouteBounds
-                    originPosition={originPosition}
-                    destinationPosition={destinationPosition}
-                />
-
-                <Polyline
-                    positions={[originPosition, destinationPosition]}
-                    pathOptions={{
-                        color: '#0ea5e9',
-                        weight: 4,
-                        opacity: 0.65,
-                        dashArray: '10 12',
-                    }}
-                />
-
-                <Polyline
-                    positions={[originPosition, planePosition]}
-                    pathOptions={{
-                        color: '#f8fafc',
-                        weight: 5,
-                        opacity: 0.92,
-                    }}
-                />
-
-                <Marker position={originPosition} icon={originIcon}>
-                    <Tooltip direction="top" offset={[0, -14]} className="simulation-tooltip">
-                        {originAirport.nombre} · {originAirport.ciudad}, {originAirport.pais}
-                    </Tooltip>
-                </Marker>
-
-                <Marker position={destinationPosition} icon={destinationIcon}>
-                    <Tooltip direction="top" offset={[0, -14]} className="simulation-tooltip">
-                        {destinationAirport.nombre} · {destinationAirport.ciudad}, {destinationAirport.pais}
-                    </Tooltip>
-                </Marker>
-
-                <Marker position={planePosition} icon={planeIcon}>
-                    <Tooltip direction="top" offset={[0, -10]} className="simulation-tooltip">
-                        Vuelo en ruta · {Math.round(progress * 100)}%
-                    </Tooltip>
-                </Marker>
-            </MapContainer>
+                role="img"
+                aria-label={`Recorrido entre ${originAirport.codigo_iata} y ${destinationAirport.codigo_iata}`}
+            />
         </div>
     );
 }
