@@ -49,6 +49,24 @@ const CONTINENTS = [
     },
 ];
 
+const COUNTRY_LABELS = [
+    { id: 'bolivia', label: 'Bolivia', latitud: -16.7, longitud: -64.8 },
+    { id: 'peru', label: 'Peru', latitud: -10.1, longitud: -75.0 },
+    { id: 'chile', label: 'Chile', latitud: -29.8, longitud: -71.0 },
+    { id: 'argentina', label: 'Argentina', latitud: -37.0, longitud: -64.5 },
+    { id: 'brasil', label: 'Brasil', latitud: -12.5, longitud: -53.0 },
+    { id: 'colombia', label: 'Colombia', latitud: 4.6, longitud: -73.8 },
+    { id: 'mexico', label: 'Mexico', latitud: 22.8, longitud: -102.0 },
+    { id: 'usa', label: 'Estados Unidos', latitud: 38.0, longitud: -98.0 },
+    { id: 'espana', label: 'Espana', latitud: 40.2, longitud: -3.7 },
+    { id: 'francia', label: 'Francia', latitud: 46.0, longitud: 2.0 },
+    { id: 'uk', label: 'Reino Unido', latitud: 54.4, longitud: -2.8 },
+    { id: 'marruecos', label: 'Marruecos', latitud: 31.8, longitud: -7.1 },
+    { id: 'egipto', label: 'Egipto', latitud: 26.5, longitud: 29.8 },
+    { id: 'sudafrica', label: 'Sudafrica', latitud: -29.0, longitud: 24.0 },
+    { id: 'kenia', label: 'Kenia', latitud: 0.2, longitud: 37.8 },
+];
+
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
@@ -60,6 +78,13 @@ function projectPoint(airport) {
     return {
         x: ((longitude + 180) / 360) * BOARD_WIDTH,
         y: ((90 - latitude) / 180) * BOARD_HEIGHT,
+    };
+}
+
+function projectCoordinate(latitud, longitud) {
+    return {
+        x: ((Number(longitud) + 180) / 360) * BOARD_WIDTH,
+        y: ((90 - Number(latitud)) / 180) * BOARD_HEIGHT,
     };
 }
 
@@ -172,6 +197,12 @@ export default function SimulationMap({
             : phase === 'completed'
               ? 'COMPLETADO'
               : 'LISTO';
+    const countryLabels = COUNTRY_LABELS.map((country) => ({
+        ...country,
+        ...projectCoordinate(country.latitud, country.longitud),
+        isSelected:
+            country.label === originAirport.pais || country.label === destinationAirport.pais,
+    }));
 
     return (
         <div className="simulation-board">
@@ -246,6 +277,22 @@ export default function SimulationMap({
                         d={smoothClosedPath(continent.points)}
                         className="simulation-board__continent"
                     />
+                ))}
+
+                {countryLabels.map((country) => (
+                    <g
+                        key={country.id}
+                        transform={`translate(${country.x} ${country.y})`}
+                        className={
+                            country.isSelected
+                                ? 'simulation-board__country-label is-selected'
+                                : 'simulation-board__country-label'
+                        }
+                    >
+                        <text textAnchor="middle" dominantBaseline="central">
+                            {country.label}
+                        </text>
+                    </g>
                 ))}
 
                 <path

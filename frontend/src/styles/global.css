@@ -1099,6 +1099,19 @@ a {
     stroke-width: 1.2;
 }
 
+.simulation-board__country-label text {
+    fill: rgba(226, 232, 240, 0.34);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.simulation-board__country-label.is-selected text {
+    fill: rgba(248, 250, 252, 0.92);
+    font-size: 12px;
+}
+
 .simulation-board__route-halo {
     fill: none;
     stroke: rgba(103, 232, 249, 0.12);
