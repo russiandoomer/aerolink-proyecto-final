@@ -117,7 +117,7 @@ php artisan migrate --seed
 
 ## 8. Pasos recomendados para subir el proyecto a GitHub
 
-Cuando el equipo tenga Git disponible en su maquina:
+Si aun no existe repositorio local:
 
 ```bash
 git init
@@ -128,7 +128,16 @@ git remote add origin https://github.com/USUARIO/REPOSITORIO.git
 git push -u origin main
 ```
 
-Si el repositorio ya existe:
+Si el repositorio local ya existe, como en esta entrega:
+
+```bash
+git add .
+git commit -m "Actualizacion del proyecto AeroLink"
+git remote add origin https://github.com/USUARIO/REPOSITORIO.git
+git push -u origin main
+```
+
+Si ya existe tambien el remoto:
 
 ```bash
 git add .
@@ -136,7 +145,57 @@ git commit -m "Actualizacion del proyecto AeroLink"
 git push
 ```
 
-## 9. Recomendaciones antes del primer push
+## 9. Estado Git actual de AeroLink
+
+En esta entrega el proyecto ya quedo:
+
+- inicializado con Git
+- en rama `main`
+- con commit base local realizado
+- con `.gitignore` revisado
+- sin remoto configurado todavia
+
+El commit local creado fue:
+
+```bash
+feat: initialize AeroLink project
+```
+
+## 10. Configurar autor antes de subir
+
+Si el estudiante quiere que el historial muestre su nombre real:
+
+```bash
+git config user.name "Tu Nombre"
+git config user.email "tu_correo@example.com"
+git commit --amend --reset-author --no-edit
+```
+
+Eso reescribe solo el commit local mas reciente para que figure con la autoria correcta antes del `push`.
+
+## 11. Paso a paso para crear el remoto en GitHub
+
+1. Entrar a [GitHub](https://github.com)
+2. Hacer clic en `New repository`
+3. Escribir un nombre, por ejemplo: `aerolink-proyecto-final`
+4. Elegir visibilidad `Public` o `Private`
+5. No marcar `Add a README`, `Add .gitignore` ni `Choose a license`
+6. Crear el repositorio
+7. Copiar la URL HTTPS del remoto
+8. En la terminal del proyecto ejecutar:
+
+```bash
+git remote add origin https://github.com/USUARIO/REPOSITORIO.git
+git push -u origin main
+```
+
+Para confirmar la vinculacion:
+
+```bash
+git remote -v
+```
+
+## 12. Recomendaciones antes del primer push
 
 - revisar `.gitignore`
 - confirmar que `.env` no este agregado
@@ -145,7 +204,7 @@ git push
 - dejar el `README.md` actualizado
 - verificar que `docs/` este incluido
 
-## 10. Como permitir que otro docente o companero monte el sistema
+## 13. Como permitir que otro docente o companero monte el sistema
 
 El repositorio debe incluir:
 
@@ -167,7 +226,7 @@ El otro usuario solo tendra que:
 7. Ejecutar `npm install` en `frontend`
 8. Ejecutar `npm run dev`
 
-## 11. Recomendaciones para no subir credenciales ni archivos sensibles
+## 14. Recomendaciones para no subir credenciales ni archivos sensibles
 
 - usar siempre variables de entorno
 - no escribir contrasenas reales en archivos versionados
@@ -175,7 +234,7 @@ El otro usuario solo tendra que:
 - usar claves de demostracion para entorno academico
 - revisar `git status` antes de cada commit
 
-## 12. Archivos clave de esta fase
+## 15. Archivos clave de esta fase
 
 - `README.md`
 - `.gitignore`
@@ -185,6 +244,6 @@ El otro usuario solo tendra que:
 - `database/seeders/`
 - `docs/07-github-y-base-de-datos-compartida.md`
 
-## 13. Cierre
+## 16. Cierre
 
 Con esta estructura, el proyecto queda listo para subirse a GitHub de forma ordenada, presentable y segura, manteniendo la base de datos compartible por migraciones y seeders en lugar de depender de archivos locales privados.

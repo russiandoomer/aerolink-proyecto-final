@@ -238,14 +238,29 @@ Las fases del proyecto quedaron documentadas en:
 - `docs/06-conexion-del-sistema.md`
 - `docs/07-github-y-base-de-datos-compartida.md`
 
-## Limitaciones del entorno actual
+## Validacion realizada
 
-Durante esta sesion no se pudo ejecutar:
+Durante esta sesion se verifico el proyecto en entorno local con:
 
-- `php artisan migrate` por version local de PHP 8.0.30
-- `npm install` o `npm run build` porque `node` y `npm` no estaban disponibles en consola
+- PHP `8.3.26`
+- Node.js `24.12.0`
+- npm `11.6.2`
+- Git `2.47.1`
 
-El codigo quedo preparado, pero para la verificacion final el equipo debe usar un entorno con PHP 8.1+ y Node.js instalado.
+Comprobaciones realizadas:
+
+- `php artisan migrate:fresh --seed`
+- `php artisan migrate:status`
+- `php artisan route:list --path=api`
+- `npm install` en `frontend/`
+- `npm run build` en `frontend/`
+- inicializacion del repositorio Git local y commit base
+
+Estado actual del repositorio:
+
+- rama principal: `main`
+- commit base: `feat: initialize AeroLink project`
+- remoto GitHub: pendiente de configurar
 
 ## Recomendacion para la presentacion
 
