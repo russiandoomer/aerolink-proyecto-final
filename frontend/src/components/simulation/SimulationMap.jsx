@@ -49,28 +49,6 @@ const CONTINENTS = [
     },
 ];
 
-const REGION_LABELS = [
-    { id: 'north-america', label: 'NORTEAMERICA', x: 190, y: 122 },
-    { id: 'south-america', label: 'SUDAMERICA', x: 304, y: 370 },
-    { id: 'europe', label: 'EUROPA', x: 590, y: 94 },
-    { id: 'africa', label: 'AFRICA', x: 620, y: 260 },
-    { id: 'asia', label: 'ASIA', x: 828, y: 146 },
-    { id: 'oceania', label: 'OCEANIA', x: 940, y: 420 },
-];
-
-const NETWORK_ARCS = [
-    { id: 'arc-1', start: { x: 150, y: 180 }, end: { x: 562, y: 148 }, lift: -64 },
-    { id: 'arc-2', start: { x: 305, y: 345 }, end: { x: 620, y: 266 }, lift: -58 },
-    { id: 'arc-3', start: { x: 640, y: 156 }, end: { x: 902, y: 182 }, lift: -52 },
-    { id: 'arc-4', start: { x: 648, y: 274 }, end: { x: 930, y: 422 }, lift: 48 },
-];
-
-const DECORATION_ORBS = [
-    { id: 'orb-1', cx: 168, cy: 94, r: 110, className: 'simulation-board__orb simulation-board__orb-primary' },
-    { id: 'orb-2', cx: 942, cy: 112, r: 130, className: 'simulation-board__orb simulation-board__orb-secondary' },
-    { id: 'orb-3', cx: 836, cy: 464, r: 150, className: 'simulation-board__orb simulation-board__orb-muted' },
-];
-
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
@@ -131,11 +109,27 @@ function polygonPath(points) {
     return points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ') + ' Z';
 }
 
-function curvedPathFromPoints(start, end, lift) {
-    const midpointX = (start.x + end.x) / 2;
-    const midpointY = (start.y + end.y) / 2;
+function smoothClosedPath(points) {
+    if (points.length < 3) {
+        return polygonPath(points);
+    }
 
-    return `M ${start.x} ${start.y} Q ${midpointX} ${midpointY + lift} ${end.x} ${end.y}`;
+    const path = [];
+
+    for (let index = 0; index < points.length; index += 1) {
+        const current = points[index];
+        const next = points[(index + 1) % points.length];
+        const midpointX = (current[0] + next[0]) / 2;
+        const midpointY = (current[1] + next[1]) / 2;
+
+        if (index === 0) {
+            path.push(`M ${midpointX} ${midpointY}`);
+        }
+
+        path.push(`Q ${current[0]} ${current[1]} ${midpointX} ${midpointY}`);
+    }
+
+    return `${path.join(' ')} Z`;
 }
 
 export default function SimulationMap({
@@ -200,21 +194,18 @@ export default function SimulationMap({
             >
                 <defs>
                     <linearGradient id="simulationOceanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#0f2742" />
-                        <stop offset="55%" stopColor="#12385a" />
-                        <stop offset="100%" stopColor="#0b1b30" />
+                        <stop offset="0%" stopColor="#07111d" />
+                        <stop offset="55%" stopColor="#0b1d30" />
+                        <stop offset="100%" stopColor="#08111b" />
                     </linearGradient>
                     <linearGradient id="simulationContinentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#c8d5c6" />
-                        <stop offset="100%" stopColor="#9fb59c" />
+                        <stop offset="0%" stopColor="#c9d4dd" />
+                        <stop offset="100%" stopColor="#a5b4c1" />
                     </linearGradient>
                     <linearGradient id="simulationRouteGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#38bdf8" />
-                        <stop offset="100%" stopColor="#f8fafc" />
-                    </linearGradient>
-                    <linearGradient id="simulationRouteHaloGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="rgba(14,165,233,0.08)" />
-                        <stop offset="100%" stopColor="rgba(248,250,252,0.12)" />
+                        <stop offset="0%" stopColor="#67e8f9" />
+                        <stop offset="50%" stopColor="#38bdf8" />
+                        <stop offset="100%" stopColor="#e2e8f0" />
                     </linearGradient>
                 </defs>
 
@@ -227,11 +218,7 @@ export default function SimulationMap({
                     className="simulation-board__background"
                 />
 
-                {DECORATION_ORBS.map((orb) => (
-                    <circle key={orb.id} cx={orb.cx} cy={orb.cy} r={orb.r} className={orb.className} />
-                ))}
-
-                {[0.2, 0.4, 0.6, 0.8].map((fraction) => (
+                {[0.16, 0.33, 0.5, 0.67, 0.84].map((fraction) => (
                     <line
                         key={`vertical-${fraction}`}
                         x1={BOARD_WIDTH * fraction}
@@ -242,7 +229,7 @@ export default function SimulationMap({
                     />
                 ))}
 
-                {[0.25, 0.5, 0.75].map((fraction) => (
+                {[0.22, 0.5, 0.78].map((fraction) => (
                     <line
                         key={`horizontal-${fraction}`}
                         x1="0"
@@ -253,31 +240,12 @@ export default function SimulationMap({
                     />
                 ))}
 
-                {NETWORK_ARCS.map((arc) => (
-                    <path
-                        key={arc.id}
-                        d={curvedPathFromPoints(arc.start, arc.end, arc.lift)}
-                        className="simulation-board__network"
-                    />
-                ))}
-
                 {CONTINENTS.map((continent) => (
                     <path
                         key={continent.id}
-                        d={polygonPath(continent.points)}
+                        d={smoothClosedPath(continent.points)}
                         className="simulation-board__continent"
                     />
-                ))}
-
-                {REGION_LABELS.map((region) => (
-                    <text
-                        key={region.id}
-                        x={region.x}
-                        y={region.y}
-                        className="simulation-board__region-label"
-                    >
-                        {region.label}
-                    </text>
                 ))}
 
                 <path
@@ -368,7 +336,7 @@ export default function SimulationMap({
                         {originAirport.ciudad}, {originAirport.pais} a {destinationAirport.ciudad}, {destinationAirport.pais}
                     </strong>
                     <small>
-                        Recorrido acelerado para demostracion academica. El trayecto se mantiene completo y visible durante toda la simulacion.
+                        Simulacion acelerada de la ruta. El recorrido permanece visible y el avance se sigue en una sola pantalla.
                     </small>
                 </div>
 
