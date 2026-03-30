@@ -19,6 +19,8 @@ class Ruta extends Model
         'distancia_km',
         'duracion_minutos',
         'tarifa_base',
+        'tipo_operacion',
+        'frecuencia_referencial',
         'activa',
     ];
 

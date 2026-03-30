@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Aeropuerto;
 use App\Models\Ruta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,12 +12,14 @@ use Illuminate\Validation\ValidationException;
 
 class RutaController extends Controller
 {
+    private const TIPOS_OPERACION = ['nacional', 'internacional', 'adicional'];
+
     public function index(Request $request): JsonResponse
     {
         $query = Ruta::query()
             ->with([
-                'aeropuertoOrigen:id,nombre,codigo_iata,ciudad',
-                'aeropuertoDestino:id,nombre,codigo_iata,ciudad',
+                'aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais',
+                'aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais',
             ])
             ->withCount('vuelos');
 
@@ -51,6 +54,10 @@ class RutaController extends Controller
 
         if ($request->has('activa')) {
             $query->where('activa', $request->boolean('activa'));
+        }
+
+        if ($request->filled('tipo_operacion')) {
+            $query->where('tipo_operacion', $request->input('tipo_operacion'));
         }
 
         return response()->json(
@@ -127,11 +134,33 @@ class RutaController extends Controller
             'distancia_km' => 'required|numeric|min:1',
             'duracion_minutos' => 'required|integer|min:1',
             'tarifa_base' => 'required|numeric|min:0',
+            'tipo_operacion' => ['required', Rule::in(self::TIPOS_OPERACION)],
+            'frecuencia_referencial' => 'nullable|string|max:40',
             'activa' => 'nullable|boolean',
         ]);
 
         $datos['codigo'] = strtoupper($datos['codigo']);
         $datos['activa'] = $datos['activa'] ?? true;
+        $datos['frecuencia_referencial'] = $this->normalizarFrecuencia($datos['frecuencia_referencial'] ?? null);
+
+        $origen = Aeropuerto::findOrFail($datos['aeropuerto_origen_id']);
+        $destino = Aeropuerto::findOrFail($datos['aeropuerto_destino_id']);
+
+        if ($datos['tipo_operacion'] !== 'adicional') {
+            $isDomestic = $origen->pais === $destino->pais;
+
+            if ($isDomestic && $datos['tipo_operacion'] !== 'nacional') {
+                throw ValidationException::withMessages([
+                    'tipo_operacion' => 'Las rutas dentro del mismo pais deben registrarse como nacionales o adicionales.',
+                ]);
+            }
+
+            if (! $isDomestic && $datos['tipo_operacion'] !== 'internacional') {
+                throw ValidationException::withMessages([
+                    'tipo_operacion' => 'Las rutas entre paises distintos deben registrarse como internacionales o adicionales.',
+                ]);
+            }
+        }
 
         $existeRuta = Ruta::query()
             ->where('aeropuerto_origen_id', $datos['aeropuerto_origen_id'])
@@ -151,5 +180,16 @@ class RutaController extends Controller
     private function perPage(Request $request): int
     {
         return max(1, min((int) $request->input('per_page', 10), 50));
+    }
+
+    private function normalizarFrecuencia(?string $frecuencia): string
+    {
+        $value = trim((string) $frecuencia);
+
+        if ($value !== '') {
+            return $value;
+        }
+
+        return 'Diaria';
     }
 }

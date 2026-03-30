@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
     geoGraticule10,
     geoInterpolate,
@@ -9,6 +10,10 @@ import worldAtlas from 'world-atlas/countries-110m.json';
 
 const BOARD_WIDTH = 1120;
 const BOARD_HEIGHT = 560;
+const VIEW_MODE = {
+    GLOBAL: 'global',
+    FOCUSED: 'focused',
+};
 
 const projection = geoNaturalEarth1().fitExtent(
     [
@@ -22,6 +27,12 @@ const pathGenerator = geoPath(projection);
 const worldCountries = feature(worldAtlas, worldAtlas.objects.countries).features;
 const spherePath = pathGenerator({ type: 'Sphere' });
 const graticulePath = pathGenerator(geoGraticule10());
+const GLOBAL_VIEWBOX = {
+    minX: 0,
+    minY: 0,
+    width: BOARD_WIDTH,
+    height: BOARD_HEIGHT,
+};
 
 const COUNTRY_NAME_MAP = {
     Bolivia: 'Bolivia',
@@ -123,6 +134,69 @@ function resolveCountryPaths(highlightedCountries) {
         .filter((country) => country.d);
 }
 
+function resolveDefaultZoomLevel(routeDistance) {
+    if (routeDistance <= 700) {
+        return 3;
+    }
+
+    if (routeDistance <= 1800) {
+        return 2;
+    }
+
+    return 1;
+}
+
+function resolveFocusedViewBox(targetPoints, zoomLevel) {
+    const paddingMap = {
+        1: 168,
+        2: 120,
+        3: 80,
+    };
+    const minWidthMap = {
+        1: 340,
+        2: 250,
+        3: 190,
+    };
+    const minHeightMap = {
+        1: 210,
+        2: 170,
+        3: 135,
+    };
+    const aspectRatio = BOARD_WIDTH / BOARD_HEIGHT;
+    const padding = paddingMap[zoomLevel] ?? paddingMap[1];
+    const minWidth = minWidthMap[zoomLevel] ?? minWidthMap[1];
+    const minHeight = minHeightMap[zoomLevel] ?? minHeightMap[1];
+    const xs = targetPoints.map((point) => point.x);
+    const ys = targetPoints.map((point) => point.y);
+    const rawWidth = Math.max(...xs) - Math.min(...xs);
+    const rawHeight = Math.max(...ys) - Math.min(...ys);
+    let width = Math.max(rawWidth + padding * 2, minWidth);
+    let height = Math.max(rawHeight + padding * 2, minHeight);
+
+    if (width / height > aspectRatio) {
+        height = width / aspectRatio;
+    } else {
+        width = height * aspectRatio;
+    }
+
+    width = Math.min(width, BOARD_WIDTH);
+    height = Math.min(height, BOARD_HEIGHT);
+
+    const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+
+    return {
+        minX: width >= BOARD_WIDTH ? 0 : clamp(centerX - width / 2, 0, BOARD_WIDTH - width),
+        minY: height >= BOARD_HEIGHT ? 0 : clamp(centerY - height / 2, 0, BOARD_HEIGHT - height),
+        width,
+        height,
+    };
+}
+
+function formatViewBox(viewBox) {
+    return `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`;
+}
+
 export default function SimulationMap({
     originAirport,
     destinationAirport,
@@ -132,6 +206,23 @@ export default function SimulationMap({
     phase,
     progressPercent,
 }) {
+    const [viewMode, setViewMode] = useState(VIEW_MODE.GLOBAL);
+    const [zoomLevel, setZoomLevel] = useState(1);
+
+    useEffect(() => {
+        if (!originAirport || !destinationAirport) {
+            setViewMode(VIEW_MODE.GLOBAL);
+            setZoomLevel(1);
+            return;
+        }
+
+        const nextZoomLevel = resolveDefaultZoomLevel(routeDistance);
+        const nextViewMode = routeDistance <= 2200 ? VIEW_MODE.FOCUSED : VIEW_MODE.GLOBAL;
+
+        setZoomLevel(nextZoomLevel);
+        setViewMode(nextViewMode);
+    }, [originAirport?.id, destinationAirport?.id, routeDistance]);
+
     if (!originAirport || !destinationAirport) {
         return (
             <div className="simulation-board simulation-board-empty">
@@ -145,7 +236,6 @@ export default function SimulationMap({
     const countryLabels = COUNTRY_LABELS.map((country) =>
         resolveCountryLabel(country, originAirport, destinationAirport)
     );
-
     const routePoints = buildRoutePoints(originAirport, destinationAirport);
     const currentIndex = clamp(
         Math.round(progress * (routePoints.length - 1)),
@@ -170,6 +260,24 @@ export default function SimulationMap({
               ? 'COMPLETADO'
               : 'LISTO';
 
+    const focusedTargets = [
+        ...routePoints,
+        { x: originLabelX, y: originLabelY },
+        { x: originLabelX + 190, y: originLabelY + 46 },
+        { x: destinationLabelX, y: destinationLabelY },
+        { x: destinationLabelX + 190, y: destinationLabelY + 46 },
+    ];
+
+    const activeViewBox =
+        viewMode === VIEW_MODE.FOCUSED
+            ? resolveFocusedViewBox(focusedTargets, zoomLevel)
+            : GLOBAL_VIEWBOX;
+
+    const visibleCountryLabels =
+        viewMode === VIEW_MODE.FOCUSED
+            ? countryLabels.filter((country) => country.isSelected)
+            : countryLabels;
+
     return (
         <div className="simulation-board">
             <div className="simulation-board__meta">
@@ -183,9 +291,42 @@ export default function SimulationMap({
                 </span>
             </div>
 
+            <div className="simulation-board__controls">
+                <button
+                    type="button"
+                    className={`simulation-board__control ${viewMode === VIEW_MODE.GLOBAL ? 'is-active' : ''}`}
+                    onClick={() => setViewMode(VIEW_MODE.GLOBAL)}
+                >
+                    Vista global
+                </button>
+                <button
+                    type="button"
+                    className={`simulation-board__control ${viewMode === VIEW_MODE.FOCUSED ? 'is-active' : ''}`}
+                    onClick={() => setViewMode(VIEW_MODE.FOCUSED)}
+                >
+                    Zoom ruta
+                </button>
+                <button
+                    type="button"
+                    className="simulation-board__control simulation-board__control-mini"
+                    onClick={() => setZoomLevel((value) => Math.max(1, value - 1))}
+                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel <= 1}
+                >
+                    -
+                </button>
+                <button
+                    type="button"
+                    className="simulation-board__control simulation-board__control-mini"
+                    onClick={() => setZoomLevel((value) => Math.min(3, value + 1))}
+                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel >= 3}
+                >
+                    +
+                </button>
+            </div>
+
             <svg
                 className="simulation-board__svg"
-                viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
+                viewBox={formatViewBox(activeViewBox)}
                 role="img"
                 aria-label={`Recorrido entre ${originAirport.codigo_iata} y ${destinationAirport.codigo_iata}`}
             >
@@ -230,7 +371,7 @@ export default function SimulationMap({
                     />
                 ))}
 
-                {countryLabels.map((country) => (
+                {visibleCountryLabels.map((country) => (
                     <g
                         key={country.id}
                         transform={`translate(${country.x} ${country.y})`}
@@ -337,8 +478,8 @@ export default function SimulationMap({
                         {destinationAirport.pais}
                     </strong>
                     <small>
-                        Simulacion acelerada de la ruta. El recorrido permanece visible y el avance
-                        se sigue en una sola pantalla.
+                        La vista puede cambiar entre mapa completo y enfoque de tramo para seguir
+                        mejor rutas cortas como VVI-LPB o LPB-CBB.
                     </small>
                 </div>
 

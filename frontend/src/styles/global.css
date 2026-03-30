@@ -1140,6 +1140,57 @@ a {
     transform: translateX(-50%);
 }
 
+.simulation-board__controls {
+    position: absolute;
+    inset: 4.2rem 1rem auto auto;
+    z-index: 500;
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.simulation-board__control {
+    padding: 0.55rem 0.85rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 999px;
+    background: rgba(8, 15, 24, 0.58);
+    color: rgba(226, 232, 240, 0.88);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition:
+        transform var(--transition),
+        background-color var(--transition),
+        border-color var(--transition),
+        color var(--transition);
+}
+
+.simulation-board__control:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(125, 211, 252, 0.26);
+}
+
+.simulation-board__control.is-active {
+    background: rgba(15, 118, 110, 0.2);
+    border-color: rgba(45, 212, 191, 0.34);
+    color: #ecfeff;
+}
+
+.simulation-board__control-mini {
+    min-width: 40px;
+    padding-inline: 0;
+    text-align: center;
+}
+
+.simulation-board__control:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+}
+
 .simulation-board__status-badge {
     display: inline-flex;
     align-items: center;
@@ -1457,6 +1508,11 @@ a {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.85rem;
     }
+
+    .simulation-board__controls {
+        inset: 4.4rem 1rem auto 1rem;
+        justify-content: flex-start;
+    }
 }
 
 @media (max-width: 920px) {
@@ -1560,6 +1616,11 @@ a {
         position: static;
         transform: none;
         padding: 0 1rem;
+    }
+
+    .simulation-board__controls {
+        position: static;
+        padding: 0 1rem 0.8rem;
     }
 
     .simulation-board__svg {

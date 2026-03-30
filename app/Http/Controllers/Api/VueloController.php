@@ -20,7 +20,7 @@ class VueloController extends Controller
                 'aerolinea:id,nombre,codigo_iata',
                 'avion:id,matricula,modelo',
                 'estadoVuelo:id,nombre,color,codigo',
-                'ruta:id,codigo,aeropuerto_origen_id,aeropuerto_destino_id',
+                'ruta:id,codigo,tipo_operacion,frecuencia_referencial,distancia_km,aeropuerto_origen_id,aeropuerto_destino_id',
                 'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
                 'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
             ])
@@ -68,7 +68,7 @@ class VueloController extends Controller
                 'aerolinea:id,nombre,codigo_iata',
                 'avion:id,matricula,modelo,fabricante,capacidad',
                 'estadoVuelo:id,nombre,color,codigo,descripcion',
-                'ruta:id,codigo,distancia_km,duracion_minutos,tarifa_base,aeropuerto_origen_id,aeropuerto_destino_id',
+                'ruta:id,codigo,distancia_km,duracion_minutos,tarifa_base,tipo_operacion,frecuencia_referencial,aeropuerto_origen_id,aeropuerto_destino_id',
                 'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
                 'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
                 'reservas' => fn ($query) => $query
@@ -189,6 +189,23 @@ class VueloController extends Controller
             ]);
         }
 
+        if ($avion->alcance_km && (float) $ruta->distancia_km > (float) $avion->alcance_km) {
+            throw ValidationException::withMessages([
+                'ruta_id' => 'La distancia de la ruta supera el alcance operativo del avion seleccionado.',
+            ]);
+        }
+
+        $airlineRouteExists = Vuelo::query()
+            ->where('aerolinea_id', $datos['aerolinea_id'])
+            ->where('ruta_id', $datos['ruta_id'])
+            ->exists();
+
+        if ($ruta->tipo_operacion === 'nacional' && ! $airlineRouteExists) {
+            throw ValidationException::withMessages([
+                'ruta_id' => 'La ruta nacional seleccionada no forma parte de la red programada actual de la aerolinea. Para abrir un nuevo trayecto use una ruta adicional o internacional.',
+            ]);
+        }
+
         return $datos;
     }
 
@@ -198,7 +215,7 @@ class VueloController extends Controller
             'aerolinea:id,nombre,codigo_iata',
             'avion:id,matricula,modelo,capacidad',
             'estadoVuelo:id,nombre,color,codigo',
-            'ruta:id,codigo,aeropuerto_origen_id,aeropuerto_destino_id',
+            'ruta:id,codigo,tipo_operacion,frecuencia_referencial,distancia_km,aeropuerto_origen_id,aeropuerto_destino_id',
             'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
             'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
         ])->loadCount([

@@ -70,6 +70,16 @@ export function formatRouteLabel(route) {
     return `${origin} - ${destination}`;
 }
 
+export function formatRouteTypeLabel(value) {
+    const labels = {
+        nacional: 'Nacional',
+        internacional: 'Internacional',
+        adicional: 'Adicional',
+    };
+
+    return labels[value] ?? 'Sin clasificar';
+}
+
 export function formatFlightLabel(flight) {
     if (!flight) {
         return '--';

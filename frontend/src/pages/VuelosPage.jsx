@@ -4,23 +4,80 @@ import {
     formatCurrency,
     formatDateTime,
     formatRouteLabel,
+    formatRouteTypeLabel,
     toDateTimeLocal,
 } from '../utils/format';
 
-function buildRouteOptions(routes = []) {
-    return routes.map((route) => ({
-        value: String(route.id),
-        label: `${route.codigo} | ${formatRouteLabel(route)}`,
-    }));
+const FLEXIBLE_ROUTE_TYPES = new Set(['internacional', 'adicional']);
+
+function airlineAircraftOptions(aircraft = [], selectedAirlineId = '', selectedAircraftId = '') {
+    return aircraft
+        .filter((item) => {
+            const sameAirline =
+                !selectedAirlineId || String(item.aerolinea_id) === String(selectedAirlineId);
+            const available = item.estado === 'activo' || String(item.id) === String(selectedAircraftId);
+
+            return sameAirline && available;
+        })
+        .map((item) => ({
+            value: String(item.id),
+            label: `${item.matricula} | ${item.modelo} | ${item.capacidad} pax`,
+        }));
+}
+
+function routeIsAvailableForAirline(route, flights = [], selectedAirlineId = '', selectedRouteId = '') {
+    if (!selectedAirlineId) {
+        return true;
+    }
+
+    if (String(route.id) === String(selectedRouteId)) {
+        return true;
+    }
+
+    if (FLEXIBLE_ROUTE_TYPES.has(route.tipo_operacion)) {
+        return true;
+    }
+
+    return flights.some(
+        (flight) =>
+            String(flight.aerolinea_id) === String(selectedAirlineId)
+            && String(flight.ruta_id) === String(route.id)
+    );
+}
+
+function buildRouteOptions(routes = [], flights = [], selectedAirlineId = '', selectedRouteId = '') {
+    return routes
+        .filter((route) =>
+            routeIsAvailableForAirline(route, flights, selectedAirlineId, selectedRouteId)
+        )
+        .map((route) => ({
+            value: String(route.id),
+            label:
+                `${route.codigo} | ${formatRouteLabel(route)} | `
+                + `${formatRouteTypeLabel(route.tipo_operacion)} | `
+                + `${route.frecuencia_referencial ?? 'Sin frecuencia'}`,
+        }));
+}
+
+function resolveAircraftCapacity(aircraft = [], aircraftId = '') {
+    const match = aircraft.find((item) => String(item.id) === String(aircraftId));
+
+    return match ? String(match.capacidad) : '';
+}
+
+function resolveRouteBaseFare(routes = [], routeId = '') {
+    const match = routes.find((item) => String(item.id) === String(routeId));
+
+    return match ? String(match.tarifa_base) : '';
 }
 
 export default function VuelosPage() {
     return (
         <ResourceManager
             title="Gestion de vuelos"
-            description="Administra salidas, horarios, estados operativos y asignacion de flota."
+            description="Programa vuelos sobre rutas ya operadas por la aerolinea o sobre rutas internacionales y adicionales habilitadas."
             endpoint="vuelos"
-            catalogKeys={['aerolineas', 'aviones', 'rutas', 'estadosVuelo']}
+            catalogKeys={['aerolineas', 'aviones', 'rutas', 'estadosVuelo', 'vuelos']}
             searchPlaceholder="Buscar por codigo de vuelo, aerolinea o ruta"
             filters={[
                 {
@@ -57,7 +114,8 @@ export default function VuelosPage() {
                 {
                     key: 'ruta',
                     label: 'Ruta',
-                    render: (row) => formatRouteLabel(row.ruta),
+                    render: (row) =>
+                        `${formatRouteLabel(row.ruta)} · ${formatRouteTypeLabel(row.ruta?.tipo_operacion)}`,
                 },
                 {
                     key: 'avion',
@@ -96,22 +154,42 @@ export default function VuelosPage() {
                             value: String(item.id),
                             label: item.nombre,
                         })),
+                    onChange: () => ({
+                        avion_id: '',
+                        ruta_id: '',
+                        capacidad: '',
+                    }),
                 },
                 {
                     name: 'avion_id',
                     label: 'Avion',
                     type: 'select',
-                    options: (catalogs) =>
-                        (catalogs.aviones ?? []).map((item) => ({
-                            value: String(item.id),
-                            label: `${item.matricula} | ${item.modelo}`,
-                        })),
+                    options: (catalogs, formData) =>
+                        airlineAircraftOptions(
+                            catalogs.aviones,
+                            formData.aerolinea_id,
+                            formData.avion_id
+                        ),
+                    helpText: 'Solo se muestran aviones activos de la aerolinea seleccionada.',
+                    onChange: (value, _nextState, catalogs) => ({
+                        capacidad: resolveAircraftCapacity(catalogs.aviones, value),
+                    }),
                 },
                 {
                     name: 'ruta_id',
                     label: 'Ruta',
                     type: 'select',
-                    options: (catalogs) => buildRouteOptions(catalogs.rutas),
+                    options: (catalogs, formData) =>
+                        buildRouteOptions(
+                            catalogs.rutas,
+                            catalogs.vuelos,
+                            formData.aerolinea_id,
+                            formData.ruta_id
+                        ),
+                    helpText: 'Las rutas nacionales se habilitan si la aerolinea ya las opera. Las internacionales y adicionales pueden programarse como nuevas.',
+                    onChange: (value, _nextState, catalogs) => ({
+                        precio_base: resolveRouteBaseFare(catalogs.rutas, value),
+                    }),
                 },
                 {
                     name: 'estado_vuelo_id',
