@@ -1,0 +1,1170 @@
+PORTADA
+
+[NOMBRE DE LA UNIVERSIDAD]
+
+Carrera: Ingeniería de Sistemas
+Materia: [Nombre de la materia]
+Proyecto Final
+
+SISTEMA WEB DE SIMULACIÓN Y LOGÍSTICA AÉREA AEROLINK
+
+Integrantes:
+[Nombre del integrante 1]
+[Nombre del integrante 2]
+[Nombre del integrante 3]
+
+Docente:
+[Nombre del docente]
+
+Fecha:
+[Fecha de presentación]
+
+
+RESUMEN
+
+El presente informe describe el desarrollo de AeroLink, un sistema web de simulación y logística aérea orientado a la gestión de vuelos, pasajeros, reservas, rutas, aeropuertos y flota. El proyecto fue construido con una arquitectura separada entre backend y frontend, utilizando Laravel como framework para la API REST, React para la interfaz de usuario y MySQL o MariaDB como base de datos relacional. El sistema fue diseñado con el propósito de centralizar operaciones básicas de una aerolínea en una plataforma académica que, sin ser excesivamente compleja, se aproxime al comportamiento de un sistema real.
+
+Durante el desarrollo se implementaron módulos CRUD, filtros, dashboard con estadísticas, control de estados de vuelo y una simulación visual de trayectos sobre un mapa mundial renderizado localmente. La comunicación entre el cliente y el servidor se realizó mediante peticiones HTTP asincrónicas, lo que permitió actualizar tablas, formularios y gráficos sin recargar la página. Además, se integraron librerías como Axios, Recharts, Framer Motion, SweetAlert2 y React Toastify para mejorar la experiencia de usuario y la visualización de datos.
+
+Como resultado, se obtuvo un sistema funcional, rápido y defendible en un contexto universitario. La integración entre backend, frontend y base de datos fue exitosa, y el producto final quedó disponible tanto para ejecución local como para despliegue web, con repositorio en GitHub y estructura organizada para mantenimiento y expansión futura.
+
+Palabras clave: logística aérea, Laravel, React, API REST, dashboard.
+
+
+INTRODUCCIÓN
+
+En la actualidad, las organizaciones vinculadas al transporte aéreo requieren herramientas digitales capaces de coordinar información operativa, comercial y logística de forma rápida y ordenada. Los procesos relacionados con vuelos, reservas, pasajeros, rutas y estados operativos involucran múltiples entidades y dependen de una actualización constante de datos. Cuando esta información se gestiona de forma manual o dispersa, se incrementa el riesgo de errores, duplicidad de registros y retrasos en la toma de decisiones.
+
+Los sistemas de información aplicados al sector aéreo permiten centralizar operaciones y mejorar la trazabilidad de los procesos. En un entorno académico, desarrollar una plataforma de este tipo representa una oportunidad para integrar conocimientos de bases de datos, programación web, arquitectura de software, desarrollo de APIs y diseño de interfaces. Por esta razón, se planteó la construcción de un sistema web que simule procesos de logística aérea y que, al mismo tiempo, sirva como evidencia práctica del uso coordinado de tecnologías modernas.
+
+La justificación del proyecto radica en la necesidad de contar con una solución clara, funcional y visualmente profesional para gestionar información relacionada con operaciones aéreas. AeroLink fue concebido como una plataforma administrativa con enfoque académico, pero con apariencia cercana a la de un sistema real. No se buscó reproducir todas las complejidades de una aerolínea comercial, sino desarrollar una solución defendible, bien estructurada y suficientemente completa para demostrar capacidades de análisis, diseño, construcción e integración de software.
+
+Objetivo general
+
+Desarrollar un sistema web de simulación y logística aérea que permita gestionar vuelos, pasajeros, reservas, rutas, aeropuertos y flota mediante una API REST en Laravel y una interfaz interactiva en React, con persistencia en una base de datos relacional.
+
+Objetivos específicos
+
+1. Diseñar una base de datos relacional que represente las principales entidades del dominio aéreo.
+2. Implementar un backend en Laravel con rutas, controladores, modelos, migraciones y validaciones.
+3. Desarrollar un frontend en React con módulos CRUD, dashboard y filtros dinámicos.
+4. Integrar el frontend con el backend a través de una API REST consumida de forma asincrónica.
+5. Incorporar una simulación visual de vuelos que permita observar el recorrido entre aeropuertos de manera acelerada.
+6. Organizar el proyecto para que pueda ejecutarse localmente, subirse a GitHub y desplegarse en un entorno web.
+
+La solución propuesta consiste en una arquitectura desacoplada en la que el backend administra la lógica de negocio y expone datos en formato JSON, mientras que el frontend consume dicha información y la presenta mediante tablas, formularios, tarjetas, gráficas y una vista de simulación. De este modo, AeroLink integra la capa de datos, la lógica del servidor y la experiencia visual del usuario en una misma plataforma.
+
+Figura 1. Arquitectura general del sistema.
+Nota. Elaboración propia.
+Sugerencia de imagen: insertar un diagrama de tres capas donde se observe el frontend React, la API REST en Laravel y la base de datos MySQL/MariaDB. Se recomienda elaborarlo a partir de la estructura real del proyecto y colocarlo al final de la introducción.
+
+Figura 2. Flujo general del proceso de reservas y vuelos.
+Nota. Elaboración propia.
+Sugerencia de imagen: representar el flujo avión -> ruta -> vuelo -> pasajero -> reserva -> cambio de estado -> dashboard. Puede elaborarse como diagrama de bloques o flujo simple y colocarse después del objetivo específico.
+
+
+CAPÍTULO 1. MARCO TEÓRICO
+
+1.1 Laravel
+
+Laravel es un framework de desarrollo web para PHP que facilita la construcción de aplicaciones estructuradas mediante componentes ya integrados, como enrutamiento, controladores, migraciones, validación, plantillas y ORM. Su adopción en entornos académicos y profesionales se debe a que permite organizar el código de manera clara y reducir la repetición de tareas comunes. En proyectos como AeroLink, Laravel resulta útil porque separa la lógica de negocio, la capa de acceso a datos y la exposición de servicios web en una misma base tecnológica.
+
+Otro aspecto importante es que Laravel ofrece herramientas listas para trabajar con APIs, autenticación, comandos de consola y relaciones entre modelos. Esto permite que el desarrollador se concentre en las reglas del negocio, en lugar de resolver manualmente funcionalidades básicas del framework. En el presente sistema, Laravel fue la base del backend y permitió construir la API REST, las migraciones, los seeders y los controladores de cada módulo de forma consistente y mantenible. (Laravel, n.d.; Pressman & Maxim, 2020).
+
+1.2 React
+
+React es una biblioteca de JavaScript orientada a la construcción de interfaces basadas en componentes. Su enfoque permite dividir la pantalla en piezas reutilizables y administrar cambios de estado sin recargar la página completa. Este modelo es especialmente útil en aplicaciones administrativas, donde formularios, tablas, filtros y paneles necesitan reaccionar rápidamente a cambios en los datos.
+
+En AeroLink, React permitió construir un frontend modular con páginas independientes para vuelos, pasajeros, reservas, rutas, flota, aeropuertos, aerolíneas y simulación. Además, su integración con React Router y Vite facilitó una navegación fluida y una carga eficiente de módulos. La posibilidad de consumir la API de forma asincrónica hizo que la interfaz respondiera en tiempo real a cada operación registrada. (React Team, n.d.; Vite, n.d.).
+
+1.3 API REST
+
+Una API REST es una interfaz que permite intercambiar información entre sistemas mediante recursos identificados por rutas y manipulados con métodos HTTP, como GET, POST, PUT, PATCH y DELETE. Este enfoque favorece la independencia entre cliente y servidor, ya que ambos pueden evolucionar por separado siempre que mantengan el contrato de comunicación definido.
+
+En el proyecto desarrollado, la API REST fue el mecanismo principal de integración entre Laravel y React. Los módulos del frontend consumen endpoints para listar, registrar, editar y eliminar entidades, mientras que el backend responde en formato JSON. Gracias a este diseño, la lógica de negocio permanece centralizada en el servidor y la interfaz se dedica a presentar los datos y capturar acciones del usuario. (Fielding, 2000; Laravel, n.d.).
+
+1.4 Arquitectura MVC
+
+La arquitectura Modelo-Vista-Controlador, conocida como MVC, propone una organización del software en tres capas lógicas. El modelo se encarga de representar los datos y sus relaciones, la vista muestra la información al usuario y el controlador coordina la entrada y salida de datos. Esta separación ayuda a mantener el código ordenado y reduce el acoplamiento entre componentes.
+
+Aunque el frontend React y el backend Laravel están desacoplados, el backend conserva una estructura inspirada en MVC: los modelos representan tablas y relaciones, los controladores atienden las peticiones HTTP y las respuestas actúan como salida hacia el cliente. Este patrón permitió que las entidades del sistema se implementaran con claridad, especialmente en módulos como vuelos, reservas y rutas. (Pressman & Maxim, 2020; Sommerville, 2016).
+
+1.5 Bases de datos relacionales
+
+Las bases de datos relacionales organizan la información en tablas conectadas por claves primarias y foráneas. Este tipo de modelo es adecuado cuando se necesita preservar integridad, consistencia y relaciones explícitas entre entidades. En sistemas administrativos, su uso sigue siendo ampliamente recomendado por la estabilidad que ofrece para consultas, reportes y validación de reglas del negocio.
+
+En AeroLink se utilizó MySQL o MariaDB porque el dominio del problema está compuesto por entidades claramente relacionadas: una aerolínea posee aviones, una ruta conecta aeropuertos, un vuelo usa una ruta y un avión, y una reserva relaciona a un pasajero con un vuelo. El diseño relacional permitió normalizar los datos y evitar redundancia innecesaria. (Oracle, n.d.; Elmasri & Navathe, 2016).
+
+1.6 Sistemas de logística aérea
+
+Los sistemas de logística aérea administran información vinculada a operaciones de vuelo, programación, ubicación, disponibilidad de aeronaves, pasajeros, equipaje y recursos aeroportuarios. Aunque una aerolínea real opera con un nivel de complejidad muy superior, incluso una versión académica debe considerar relaciones entre rutas, horarios, estados y capacidad operativa.
+
+La utilización de códigos IATA, la vinculación entre aeropuertos y vuelos, y la necesidad de coordinar información de forma rápida justifican el uso de sistemas especializados. En AeroLink no se buscó modelar la totalidad de la operación aeronáutica internacional, pero sí se tomaron como referencia estructuras y conceptos presentes en el sector, como la identificación de aeropuertos, la gestión de reservas y el monitoreo del estado del vuelo. (International Air Transport Association, n.d.; International Civil Aviation Organization, n.d.).
+
+1.7 Dashboards interactivos
+
+Un dashboard es una interfaz que resume información relevante mediante indicadores, tablas y gráficas para apoyar la interpretación rápida del estado del sistema. Su objetivo principal es permitir que el usuario comprenda la situación actual sin tener que revisar múltiples pantallas por separado. Un dashboard bien diseñado debe priorizar claridad, jerarquía visual y rapidez de lectura.
+
+En AeroLink, el dashboard reúne métricas de vuelos, pasajeros, reservas, ocupación, rutas más usadas y próximos vuelos. La intención no fue crear una visualización excesivamente compleja, sino mostrar información útil para la demostración y análisis del sistema. Esta decisión coincide con los principios de visualización efectiva, según los cuales el exceso de elementos decorativos perjudica la lectura de la información. (Few, 2013; Recharts, n.d.).
+
+1.8 Fetch / Axios y asincronía
+
+Las aplicaciones web modernas dependen de la comunicación asincrónica para consultar y actualizar datos sin recargar la interfaz completa. Para ello pueden emplearse funciones nativas del navegador, como fetch, o bibliotecas especializadas como Axios. Ambas permiten enviar solicitudes HTTP y procesar respuestas JSON, aunque Axios agrega utilidades prácticas, como interceptores, configuración centralizada y mejor manejo de errores.
+
+En el presente sistema se eligió Axios porque simplifica la conexión con la API y permite establecer una configuración común para la URL base y las cabeceras. Gracias a esta decisión, cada módulo del frontend pudo reutilizar la misma capa de comunicación. La asincronía hizo posible que el sistema respondiera con fluidez ante operaciones CRUD, filtros y carga de estadísticas. (Axios Contributors, n.d.; React Team, n.d.).
+
+1.9 Librerías de animación e interfaz
+
+Las librerías de apoyo a la interfaz permiten enriquecer la experiencia del usuario sin necesidad de desarrollar cada interacción desde cero. En un panel administrativo, su función no debe ser la ornamentación excesiva, sino facilitar la lectura, la retroalimentación visual y la percepción de fluidez. Animaciones suaves en botones, tarjetas o transiciones pueden mejorar la percepción de calidad del sistema.
+
+En AeroLink se utilizaron Framer Motion para animaciones, Recharts para gráficos, Lucide React para iconografía, React Toastify para notificaciones y SweetAlert2 para confirmaciones. La selección se hizo buscando herramientas ligeras, conocidas y fáciles de defender. La versión final de la simulación de vuelo también empleó datos geográficos locales mediante world-atlas, topojson-client y d3-geo, evitando depender de servicios externos inestables durante la presentación. (Motion, n.d.; Recharts, n.d.).
+
+1.10 GitHub como herramienta de control de versiones
+
+GitHub es una plataforma de control de versiones y colaboración que permite almacenar el código fuente, registrar cambios, revertir versiones y compartir el proyecto con otros integrantes o docentes. En el desarrollo académico resulta valioso porque conserva el historial del trabajo, facilita el respaldo del proyecto y permite que otras personas reconstruyan el sistema a partir del repositorio.
+
+En AeroLink, GitHub se utilizó para organizar el código del backend, frontend, documentación y archivos de configuración. El uso del repositorio ayudó a mantener una estructura clara, a separar archivos sensibles mediante .gitignore y a dejar disponible un punto de acceso único para clonar y ejecutar el sistema desde cero. (GitHub, n.d.; Composer, n.d.).
+
+
+CAPÍTULO 2. METODOLOGÍA
+
+2.1 Metodología utilizada
+
+Para el desarrollo del sistema se adoptó una metodología ágil de tipo Scrum simplificado. No se trabajó con un entorno empresarial formal, pero sí con iteraciones cortas y entregas parciales. Primero se definió la arquitectura general, después la base de datos, luego el backend, posteriormente el frontend, el dashboard, la simulación y finalmente la etapa de despliegue y documentación.
+
+Este enfoque permitió validar cada módulo por etapas y corregir errores antes de avanzar al siguiente nivel. Por ejemplo, primero se verificó la estructura relacional mediante migraciones y seeders, luego se construyeron los endpoints, más adelante se conectó el frontend, y al final se integró el despliegue en Railway, Vercel y GitHub. Esta secuencia redujo el riesgo de acumular errores difíciles de rastrear.
+
+2.2 Arquitectura del sistema
+
+La arquitectura adoptada fue de tipo cliente-servidor desacoplada. El backend se desarrolló en Laravel 10 y se encargó de administrar la lógica de negocio, la validación de datos y el acceso a la base relacional. El frontend se desarrolló en React con Vite y se enfocó en la presentación de información, formularios, filtros, dashboard y simulación visual. La persistencia quedó a cargo de MySQL/MariaDB.
+
+La comunicación entre ambas capas se realizó mediante una API REST. Esto permitió mantener independencia entre el servidor y la interfaz, además de facilitar el despliegue en servicios distintos. En el entorno de publicación, el backend se desplegó en Railway y el frontend en Vercel, mientras que el repositorio de respaldo quedó alojado en GitHub.
+
+Código 1. Ruta API para vuelos.
+Route::apiResource('vuelos', VueloController::class)->only(['index', 'show']);
+
+Explicación:
+La instrucción anterior registra automáticamente las rutas de consulta del recurso vuelos, permitiendo listar registros y ver el detalle de un vuelo específico. Las operaciones de escritura se habilitaron por separado bajo un middleware de API key.
+
+Figura 3. Diagrama entidad-relación de la base de datos.
+Nota. Elaboración propia.
+Sugerencia de imagen: elaborar el diagrama a partir de las tablas aerolineas, aeropuertos, aviones, rutas, estados_vuelo, vuelos, pasajeros y reservas. Se recomienda ubicarlo después del apartado 2.2.
+
+2.3 Diseño de la base de datos
+
+La base de datos se diseñó bajo un enfoque relacional, buscando representar de manera clara las entidades principales del sistema. Las tablas centrales del dominio fueron aerolineas, aeropuertos, aviones, rutas, estados_vuelo, vuelos, pasajeros y reservas. Adicionalmente, Laravel incorporó tablas técnicas como users, password_reset_tokens, failed_jobs y personal_access_tokens.
+
+La relación entre tablas se definió mediante claves foráneas. Un avión pertenece a una aerolínea, una ruta conecta dos aeropuertos, un vuelo pertenece a una ruta, un avión y un estado, y una reserva conecta un pasajero con un vuelo. Esto permitió realizar consultas complejas y agregar validaciones de negocio directamente en el backend.
+
+Código 2. Fragmento de migración de vuelos.
+$table->foreignId('aerolinea_id')->constrained('aerolineas')->cascadeOnUpdate();
+$table->foreignId('avion_id')->constrained('aviones')->cascadeOnUpdate();
+$table->foreignId('ruta_id')->constrained('rutas')->cascadeOnUpdate();
+$table->foreignId('estado_vuelo_id')->constrained('estados_vuelo')->cascadeOnUpdate();
+$table->string('codigo_vuelo', 20)->unique();
+
+Explicación:
+Este fragmento muestra cómo la tabla vuelos enlaza varias entidades del sistema. El código de vuelo se definió como único para evitar duplicidad y asegurar un identificador operativo reconocible.
+
+2.4 Backend en Laravel
+
+El backend se organizó con controladores API, modelos Eloquent, migraciones, seeders y middleware. Cada módulo cuenta con un controlador propio ubicado en app/Http/Controllers/Api, lo que permitió separar responsabilidades y mantener reglas claras por entidad. Los modelos en app/Models representan las tablas principales y contienen relaciones como belongsTo y hasMany.
+
+La validación se centralizó en los controladores. En el caso de vuelos, se controló que el avión pertenezca a la aerolínea seleccionada, que la ruta esté activa, que la capacidad del vuelo no supere la del avión y que la fecha de llegada sea posterior a la de salida. En reservas, se impidió duplicar pasajeros activos en el mismo vuelo, repetir asientos y sobrepasar la capacidad disponible.
+
+Código 3. Regla de validación de vuelos.
+if ((int) $avion->aerolinea_id !== (int) $datos['aerolinea_id']) {
+    throw ValidationException::withMessages([
+        'avion_id' => 'El avion seleccionado no pertenece a la aerolinea indicada.',
+    ]);
+}
+
+Explicación:
+La regla anterior evita inconsistencias entre la flota registrada y los vuelos creados. Gracias a esta validación, el sistema no permite asociar un avión a una aerolínea distinta.
+
+Figura 4. Estructura de carpetas del backend Laravel.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar el árbol de carpetas desde Visual Studio Code o el explorador de archivos mostrando app, database, routes, config y resources. Colocar la imagen después del apartado 2.4.
+
+2.5 Frontend en React
+
+El frontend se construyó con React 18 y Vite. La navegación principal se centralizó en AppRouter.jsx, donde las páginas se cargan de manera diferida mediante lazy y Suspense. El layout general se encuentra en DashboardLayout.jsx y contiene sidebar, topbar y transición entre módulos.
+
+Una decisión importante fue reutilizar un componente genérico llamado ResourceManager para la mayoría de los módulos CRUD. Este componente administra consulta de registros, búsqueda, filtros, paginación, edición, eliminación y formularios. Gracias a ello, las páginas de vuelos, pasajeros, reservas, rutas y flota se construyeron configurando columnas, campos y transformaciones, sin duplicar demasiada lógica.
+
+Código 4. Consumo base de la API con Axios.
+const http = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api',
+    headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+    },
+});
+
+Explicación:
+Este fragmento configura un cliente HTTP reutilizable para todas las pantallas del sistema. De esta manera, los módulos del frontend utilizan la misma URL base y el mismo formato de intercambio con la API.
+
+Figura 5. Estructura de carpetas del frontend React.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar la carpeta frontend/src mostrando api, components, layouts, pages, routes, styles y utils. Se recomienda insertar esta figura al cierre del apartado 2.5.
+
+2.6 Comunicación mediante API REST
+
+La comunicación entre frontend y backend se realizó mediante JSON. El backend responde con objetos y arreglos de datos que luego son interpretados por React. En listados paginados se incluyen campos como current_page, last_page, total y data. En cambio, para recursos individuales utiliza la clave data como contenedor principal.
+
+También se configuró una API key simple para proteger operaciones de escritura. En el frontend, dicha clave se adjunta mediante un interceptor de Axios. Esta solución es suficiente para un proyecto académico, aunque en un entorno productivo real sería recomendable reemplazarla por autenticación completa basada en usuarios y permisos.
+
+2.7 Librerías y herramientas utilizadas
+
+En el frontend se instalaron Axios, Framer Motion, Lucide React, React Router DOM, React Toastify, Recharts, SweetAlert2, d3-geo, topojson-client y world-atlas. Axios permitió consumir la API; React Router administró la navegación; Recharts se utilizó para las gráficas del dashboard; Framer Motion se encargó de las transiciones; SweetAlert2 y React Toastify mejoraron la retroalimentación visual; y d3-geo con world-atlas hicieron posible la simulación de vuelo sobre un mapa mundial local.
+
+En el backend se trabajó con Laravel Framework, Sanctum, Tinker y Guzzle, además de Composer y Artisan como herramientas de gestión del proyecto. En desarrollo también se contó con paquetes de soporte como Pint, Pest y Laravel Ignition. Aunque no todos se utilizaron en la exposición final, forman parte del entorno real del proyecto y respaldan buenas prácticas de mantenimiento.
+
+2.8 GitHub y control de versiones
+
+El proyecto fue organizado como repositorio Git y posteriormente publicado en GitHub. Esto permitió conservar el historial de cambios, subir el código fuente, compartir la estructura del sistema y preparar el proyecto para evaluación o despliegue. También se configuró un .gitignore apropiado para evitar subir archivos sensibles como .env, vendor, node_modules y builds locales.
+
+La utilización de GitHub fue importante no solo como requisito de entrega, sino también como respaldo de trabajo. La estructura final del repositorio contiene backend, frontend, documentación técnica y archivo README. Esto facilita que otra persona clone el proyecto, instale dependencias y reconstruya la aplicación desde cero.
+
+2.9 Organización del trabajo del equipo
+
+El trabajo se organizó por capas y módulos. Primero se definió el alcance del sistema y el modelo de datos. Luego se construyeron migraciones, modelos y seeders. En una segunda etapa se desarrollaron los controladores y endpoints. Más adelante se diseñó el frontend administrativo, se conectaron formularios y tablas, y finalmente se integraron el dashboard, la simulación de vuelo y el despliegue.
+
+Este orden permitió que cada avance tuviera una base sólida. En lugar de desarrollar todas las pantallas antes de validar la lógica, se priorizó la estabilidad del backend y la estructura de datos. Después, sobre esa base, se construyó la capa visual y se ajustó la experiencia del usuario.
+
+Figura 6. Captura de las migraciones ejecutadas correctamente.
+Nota. Elaboración propia.
+Sugerencia de imagen: ejecutar php artisan migrate --seed en la terminal y capturar el resultado donde se observe que las migraciones y seeders concluyeron sin errores. Puede tomarse también desde Railway si se desea mostrar el despliegue.
+
+
+CAPÍTULO 3. DESARROLLO DEL SISTEMA
+
+3.1 Módulo de vuelos
+
+Objetivo del módulo
+
+El módulo de vuelos tiene como finalidad registrar y administrar la operación central del sistema. A través de este módulo se definen horarios, estados, asignación de avión, ruta y tarifa base.
+
+Qué permite hacer
+
+Permite listar vuelos, buscar por código, aerolínea o ruta, filtrar por fecha de salida y estado, registrar nuevos vuelos, editar información operativa y eliminar registros cuando no existen reservas asociadas.
+
+Cómo funciona
+
+La pantalla de vuelos en React se implementó en VuelosPage.jsx y reutiliza el componente ResourceManager. El listado consume el endpoint GET /api/vuelos y muestra columnas como código de vuelo, ruta, avión, fecha de salida, tarifa y estado. El formulario permite seleccionar aerolínea, avión, ruta, estado operativo, horario, terminal, puerta, capacidad, precio base y observaciones.
+
+Qué tablas usa
+
+El módulo utiliza principalmente las tablas vuelos, aerolineas, aviones, rutas y estados_vuelo. También consulta reservas para calcular cantidad de reservas asociadas y ocupación.
+
+Qué rutas API usa
+
+GET /api/vuelos
+GET /api/vuelos/{id}
+POST /api/vuelos
+PUT /api/vuelos/{id}
+DELETE /api/vuelos/{id}
+PATCH /api/vuelos/{id}/estado
+
+Qué componentes React usa
+
+VuelosPage.jsx, ResourceManager.jsx, DataTable.jsx, StatusBadge.jsx, PageHeader.jsx y FadeInBlock.jsx.
+
+Qué validaciones tiene
+
+Se valida que el código de vuelo sea único, que la llegada sea posterior a la salida, que el avión exista y pertenezca a la aerolínea, que el avión esté activo, que la ruta esté activa y que la capacidad no supere la capacidad del avión.
+
+Pantallas e interacción con la base de datos
+
+El usuario registra el vuelo desde la pantalla Gestión de vuelos. El formulario envía los datos al backend y Laravel los guarda en la tabla vuelos mediante Eloquent. Luego la tabla del frontend se actualiza consultando nuevamente la colección paginada.
+
+Figura 7. Pantalla principal de gestión de vuelos.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir la ruta /vuelos en el frontend y capturar la tabla con filtros, estados y el formulario lateral o inferior según la resolución usada.
+
+3.2 Módulo de pasajeros
+
+Objetivo del módulo
+
+Este módulo administra los datos personales mínimos de los pasajeros que pueden participar en reservas futuras.
+
+Qué permite hacer
+
+Permite registrar nombres, apellidos, tipo de documento, número de documento, fecha de nacimiento, nacionalidad, teléfono y correo electrónico. También habilita búsqueda por nombre, documento o email y filtro por tipo de documento.
+
+Cómo funciona
+
+La página PasajerosPage.jsx configura ResourceManager con campos sencillos y una tabla resumida. Los registros se consultan mediante GET /api/pasajeros y se guardan en la tabla pasajeros. Cada fila puede editarse o eliminarse, salvo cuando el pasajero ya posee reservas relacionadas.
+
+Qué tablas usa
+
+La tabla principal es pasajeros, pero el módulo también se relaciona con reservas para mostrar cuántas reservas tiene cada registro.
+
+Qué rutas API usa
+
+GET /api/pasajeros
+GET /api/pasajeros/{id}
+POST /api/pasajeros
+PUT /api/pasajeros/{id}
+DELETE /api/pasajeros/{id}
+
+Qué componentes React usa
+
+PasajerosPage.jsx, ResourceManager.jsx, DataTable.jsx, PageHeader.jsx y utilidades de formato para nombres.
+
+Qué validaciones tiene
+
+Se valida obligatoriedad de nombres, apellidos, tipo de documento y número de documento. Además, el número de documento debe ser único, la fecha de nacimiento debe ser anterior al día actual y el correo debe tener formato válido si fue proporcionado.
+
+Pantallas e interacción con la base de datos
+
+Desde la interfaz se crea o edita el registro, el backend valida los campos y persiste la información con Eloquent. Al consultar el detalle, Laravel también puede traer el historial de reservas del pasajero.
+
+Figura 8. Formulario de registro de pasajero.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir /pasajeros y capturar el formulario completo con nombres, documento, fecha de nacimiento, nacionalidad, teléfono y correo.
+
+3.3 Módulo de reservas
+
+Objetivo del módulo
+
+El módulo de reservas relaciona pasajeros con vuelos y representa la dimensión comercial del sistema.
+
+Qué permite hacer
+
+Permite crear reservas, definir clase, estado, asiento, equipaje registrado, precio total y observaciones. También permite buscar por código de reserva, pasajero o vuelo, así como filtrar por estado y clase.
+
+Cómo funciona
+
+La página ReservasPage.jsx carga catálogos de vuelos y pasajeros para poblar listas desplegables. Cuando el usuario confirma un registro, el frontend envía los datos al backend, que valida reglas de ocupación y consistencia antes de insertar la reserva.
+
+Qué tablas usa
+
+El módulo utiliza las tablas reservas, vuelos, pasajeros y, de forma opcional, users si se asocia un usuario del sistema.
+
+Qué rutas API usa
+
+GET /api/reservas
+GET /api/reservas/{id}
+POST /api/reservas
+PUT /api/reservas/{id}
+DELETE /api/reservas/{id}
+
+Qué componentes React usa
+
+ReservasPage.jsx, ResourceManager.jsx, StatusBadge.jsx, DataTable.jsx y funciones de formato para vuelo, pasajero y moneda.
+
+Qué validaciones tiene
+
+Se controla que el vuelo exista, que el pasajero exista, que la clase y el estado pertenezcan a los valores permitidos, que el precio no sea negativo y que el asiento no esté repetido. Además, el sistema impide registrar reservas activas en vuelos cancelados o aterrizados, evita duplicar pasajeros activos en un mismo vuelo y bloquea reservas si la capacidad ya fue completada.
+
+Pantallas e interacción con la base de datos
+
+El formulario de reservas se alimenta con catálogos y guarda la información en la tabla reservas. A la vez, el backend consulta la tabla vuelos para verificar el estado del vuelo y el cupo disponible antes de aceptar el registro.
+
+Figura 9. Pantalla de reservas realizadas.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir /reservas y capturar una vista donde se observen código de reserva, pasajero, vuelo, clase, estado y precio total.
+
+3.4 Módulo de rutas
+
+Objetivo del módulo
+
+El módulo de rutas administra los trayectos disponibles entre aeropuertos y sirve como base para la creación de vuelos.
+
+Qué permite hacer
+
+Permite registrar un código de ruta, definir aeropuerto de origen, aeropuerto de destino, distancia, duración estimada, tarifa base y estado de activación.
+
+Cómo funciona
+
+La página RutasPage.jsx consume catálogos de aeropuertos y presenta una tabla con trayecto, duración, tarifa y estado. El backend verifica que el aeropuerto de destino sea diferente al de origen y que no exista otra ruta repetida con la misma combinación.
+
+Qué tablas usa
+
+El módulo se apoya en rutas y aeropuertos, y consulta la cantidad de vuelos asociados para impedir eliminaciones inconsistentes.
+
+Qué rutas API usa
+
+GET /api/rutas
+GET /api/rutas/{id}
+POST /api/rutas
+PUT /api/rutas/{id}
+DELETE /api/rutas/{id}
+
+Qué componentes React usa
+
+RutasPage.jsx, ResourceManager.jsx, StatusBadge.jsx, DataTable.jsx y funciones de formato para trayectos y moneda.
+
+Qué validaciones tiene
+
+Se valida que el código sea único, que los aeropuertos existan, que origen y destino sean diferentes, que distancia y duración sean mayores a cero y que la tarifa base no sea negativa. También se impide duplicar una ruta ya registrada con el mismo origen y destino.
+
+Pantallas e interacción con la base de datos
+
+Cuando el usuario registra una ruta, el backend inserta los datos en la tabla rutas y relaciona los aeropuertos por claves foráneas. Después, el frontend actualiza la tabla para mostrar el nuevo trayecto disponible.
+
+Figura 10. Pantalla de gestión de rutas.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir /rutas y capturar una pantalla donde se vean las rutas activas, su trayecto y la tarifa base.
+
+3.5 Módulo de flota
+
+Objetivo del módulo
+
+El módulo de flota permite administrar las aeronaves disponibles para operar vuelos dentro del sistema.
+
+Qué permite hacer
+
+Permite registrar matrícula, modelo, fabricante, capacidad, alcance, estado operativo y fecha del último mantenimiento, además de filtrar por aerolínea o estado.
+
+Cómo funciona
+
+La pantalla FlotaPage.jsx utiliza ResourceManager y carga el catálogo de aerolíneas. Cada registro se guarda en la tabla aviones y se relaciona con una aerolínea específica.
+
+Qué tablas usa
+
+El módulo utiliza las tablas aviones y aerolineas, y consulta vuelos para evitar eliminar aviones con operaciones relacionadas.
+
+Qué rutas API usa
+
+GET /api/aviones
+GET /api/aviones/{id}
+POST /api/aviones
+PUT /api/aviones/{id}
+DELETE /api/aviones/{id}
+
+Qué componentes React usa
+
+FlotaPage.jsx, ResourceManager.jsx, StatusBadge.jsx, DataTable.jsx y PageHeader.jsx.
+
+Qué validaciones tiene
+
+Se valida que la matrícula sea única, que la aerolínea exista, que modelo y fabricante sean obligatorios, que la capacidad sea positiva y que el estado pertenezca al conjunto activo, mantenimiento o fuera_servicio.
+
+Pantallas e interacción con la base de datos
+
+El módulo toma los datos del formulario, los envía al backend y Laravel persiste la información en la tabla aviones. Posteriormente, estos datos son reutilizados por el módulo de vuelos para asignar aeronaves.
+
+Figura 11. Pantalla de monitoreo y gestión de flota.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir /flota y capturar la tabla con matrícula, modelo, fabricante, capacidad y estado operativo.
+
+3.6 Dashboard
+
+Objetivo del módulo
+
+El dashboard resume la información operativa del sistema y permite una lectura rápida del estado general de vuelos, reservas y flota.
+
+Qué permite hacer
+
+Muestra totales de vuelos, pasajeros, reservas y flota activa, además de gráficas de distribución por estado, reservas por clase, ocupación por vuelo, rutas más usadas y próximos vuelos.
+
+Cómo funciona
+
+La página DashboardPage.jsx consume el endpoint GET /api/dashboard/resumen. El controlador DashboardController agrupa información mediante conteos y consultas con relaciones, y devuelve un objeto JSON consolidado que luego es interpretado por Recharts y componentes visuales del frontend.
+
+Qué tablas usa
+
+Consulta vuelos, pasajeros, reservas, aviones, rutas y estados_vuelo.
+
+Qué rutas API usa
+
+GET /api/dashboard/resumen
+
+Qué componentes React usa
+
+DashboardPage.jsx, DashboardHero.jsx, MetricCard.jsx, ChartPanel.jsx, StatusBadge.jsx, FadeInBlock.jsx y componentes de Recharts.
+
+Qué validaciones tiene
+
+El dashboard no registra información, pero depende de la consistencia de las demás tablas para mostrar resultados correctos. Por ello se beneficia indirectamente de las validaciones del resto de módulos.
+
+Pantallas e interacción con la base de datos
+
+El backend realiza agregaciones, agrupa reservas por clase, cuenta vuelos por estado y calcula ocupación. El frontend convierte estos datos en tarjetas, barras, áreas y gráficos circulares.
+
+Figura 12. Dashboard con estadísticas de vuelos y reservas.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir la ruta principal / y capturar el dashboard completo con métricas, gráficas y lista de próximos vuelos.
+
+3.7 Módulo de simulación de vuelo
+
+Objetivo del módulo
+
+El módulo de simulación de vuelo tiene como finalidad mostrar de manera visual el recorrido entre un aeropuerto de origen y uno de destino, sin necesidad de esperar la duración real del trayecto.
+
+Qué permite hacer
+
+Permite seleccionar país de origen, aeropuerto de origen, país de destino, aeropuerto de destino y velocidad de simulación. El sistema dibuja el recorrido sobre un mapa mundial, resalta origen y destino, y anima el avance del avión a lo largo de la ruta.
+
+Cómo funciona
+
+La pantalla SimulacionPage.jsx consulta el catálogo de aeropuertos con coordenadas. Después, SimulationMap.jsx proyecta la ruta usando datos geográficos locales. La animación se basa en interpolación geográfica y en una barra de progreso, sin representar despegue ni aterrizaje, tal como se definió en el alcance del proyecto.
+
+Qué tablas usa
+
+El módulo consulta principalmente la tabla aeropuertos. En particular, utiliza nombre, código IATA, país, ciudad, latitud y longitud.
+
+Qué rutas API usa
+
+GET /api/aeropuertos/catalogo
+GET /api/aeropuertos
+
+Qué componentes React usa
+
+SimulacionPage.jsx, SimulationMap.jsx, LoadingState.jsx, EmptyState.jsx, PageHeader.jsx y FadeInBlock.jsx.
+
+Qué validaciones tiene
+
+Se exige que existan aeropuertos con coordenadas válidas. El sistema también evita simular rutas entre el mismo aeropuerto y reinicia la animación cuando cambian origen, destino o velocidad.
+
+Pantallas e interacción con la base de datos
+
+El frontend consulta el catálogo de aeropuertos, agrupa los registros por país y utiliza las coordenadas para dibujar el trayecto. No se depende de una API externa de mapas en la versión final, ya que se optó por un mapa mundial local más estable para la exposición.
+
+Figura 13. Módulo de simulación de vuelo sobre mapa mundial.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir /simulacion, seleccionar una ruta como Bolivia - Sudáfrica y capturar el mapa con el avión en desplazamiento y los países resaltados.
+
+
+CAPÍTULO 4. APIs, LIBRERÍAS Y HERRAMIENTAS UTILIZADAS
+
+4.1 API REST desarrollada en Laravel
+
+La API REST constituye el núcleo técnico del sistema. Fue desarrollada con Laravel y organizada mediante controladores específicos por módulo. Cada recurso cuenta con rutas para consulta y, en la mayoría de casos, también para registro, edición y eliminación. Las respuestas se envían en JSON y el frontend interpreta esos datos para poblar tablas, formularios y paneles gráficos.
+
+Una ventaja de esta API es que desacopla completamente la interfaz del servidor. Esto permitió desarrollar el frontend en React sin depender de vistas Blade tradicionales. Además, dejó preparado el sistema para despliegues separados y posibles extensiones futuras, como autenticación más completa o integración con aplicaciones móviles.
+
+4.2 Endpoints principales del sistema
+
+Los endpoints más importantes del proyecto se distribuyen por módulos. Para aerolíneas, aeropuertos, aviones, rutas, vuelos, pasajeros y reservas se construyeron operaciones CRUD. Además, se añadió un endpoint específico para el dashboard y otro para cambiar el estado de un vuelo.
+
+Entre los endpoints más representativos se encuentran:
+
+GET /api/dashboard/resumen
+GET /api/aeropuertos/catalogo
+GET /api/vuelos
+POST /api/vuelos
+PATCH /api/vuelos/{id}/estado
+GET /api/pasajeros
+POST /api/reservas
+PUT /api/rutas/{id}
+DELETE /api/aviones/{id}
+
+De acuerdo con la verificación realizada mediante Artisan, el proyecto registró 42 rutas en Laravel, considerando operaciones CRUD, estados de vuelo, dashboard y rutas auxiliares del sistema.
+
+4.3 Métodos HTTP utilizados
+
+El sistema utiliza los métodos HTTP más comunes en una arquitectura REST. GET se usa para consultar colecciones o detalles, POST para crear registros, PUT y PATCH para actualizar información, y DELETE para eliminar datos cuando las restricciones del negocio lo permiten.
+
+En la práctica, GET fue empleado para cargar tablas, catálogos y métricas del dashboard; POST se usó para registrar vuelos, rutas, pasajeros y reservas; PUT para editar registros existentes; PATCH para cambios parciales como el estado de un vuelo; y DELETE para remover entidades sin dependencias conflictivas.
+
+4.4 Formato JSON de respuesta
+
+Laravel responde con estructuras JSON que facilitan la lectura desde el cliente. En listados paginados se incluyen campos como current_page, last_page, total y data. En recursos individuales, el objeto principal suele estar encapsulado dentro de la clave data. También se devuelven mensajes de confirmación cuando una operación termina correctamente.
+
+Este formato estandarizado simplifica el trabajo del frontend, ya que un mismo patrón puede ser reutilizado para varios módulos. Además, en caso de error, Laravel puede devolver mensajes de validación claros que luego se muestran al usuario mediante toasts o alertas.
+
+4.5 Consumo de API desde React con Axios o Fetch
+
+Aunque teóricamente podían emplearse tanto fetch como Axios, la implementación final utilizó Axios. Se creó un cliente HTTP centralizado con una URL base y cabeceras comunes. A partir de esa configuración se construyeron funciones como fetchCollection, fetchRecord, createRecord, updateRecord y deleteRecord.
+
+Este diseño redujo la duplicación de código y facilitó el mantenimiento. También permitió añadir un interceptor para enviar la API key en solicitudes de escritura. En consecuencia, el frontend pudo operar de forma uniforme en todos los módulos.
+
+4.6 Librerías del frontend utilizadas
+
+Las principales dependencias del frontend fueron las siguientes:
+
+Axios: consumo de la API REST.
+React Router DOM: navegación entre módulos.
+Framer Motion: transiciones y animaciones suaves.
+Lucide React: iconografía del sistema.
+React Toastify: notificaciones breves.
+SweetAlert2: alertas de confirmación y eliminación.
+Recharts: gráficas del dashboard.
+d3-geo, topojson-client y world-atlas: simulación de vuelo sobre mapa mundial local.
+Vite: entorno de desarrollo y empaquetado.
+
+La elección de estas herramientas buscó equilibrio entre funcionalidad y simplicidad. Ninguna dependencia fue incorporada solo por moda; cada una respondió a una necesidad concreta del proyecto.
+
+4.7 Librerías del backend utilizadas
+
+En el backend se trabajó principalmente con Laravel Framework. También se utilizaron componentes de su ecosistema y dependencias auxiliares:
+
+Laravel Framework: estructura general del backend.
+Laravel Sanctum: soporte para autenticación y rutas protegidas.
+Laravel Tinker: pruebas rápidas desde consola.
+Guzzle: cliente HTTP disponible en el proyecto.
+Composer: gestión de dependencias PHP.
+Artisan: ejecución de comandos de desarrollo.
+
+Estas herramientas permitieron construir la API, generar archivos base, ejecutar migraciones, sembrar datos, listar rutas y validar el entorno del proyecto.
+
+4.8 Herramientas de apoyo para desarrollo
+
+Además del código principal, se utilizaron herramientas de apoyo como GitHub para control de versiones, Node.js y npm para dependencias del frontend, Composer para dependencias del backend, y servicios como Railway y Vercel para el despliegue. También se trabajó con Visual Studio Code o un editor equivalente para organizar carpetas, revisar archivos y ejecutar el proyecto.
+
+La combinación de estas herramientas permitió no solo desarrollar el sistema, sino también publicarlo y verificar su funcionamiento real en línea. Esto fortaleció el carácter defendible del proyecto, ya que la solución no se quedó solo en el entorno local.
+
+4.9 Ventajas del uso de estas herramientas en el proyecto
+
+El uso conjunto de Laravel y React permitió separar la lógica y la presentación, lo cual mejoró la organización del sistema. MySQL/MariaDB garantizó consistencia en los datos, mientras que Axios y la API REST hicieron posible una comunicación rápida y dinámica. Recharts y Framer Motion aportaron una interfaz más clara y moderna sin recargar demasiado el sistema.
+
+GitHub, Composer y npm facilitaron la reconstrucción del proyecto desde cero, algo muy importante en un trabajo académico. Finalmente, el despliegue en Railway y Vercel dejó evidencia de que el sistema no solo compila, sino que funciona en un entorno real.
+
+Tabla 1. APIs y herramientas utilizadas en el sistema
+
+| Herramienta/API        | Función dentro del sistema                                      |
+|------------------------|-----------------------------------------------------------------|
+| Laravel API            | Gestión de datos, validaciones y lógica del negocio             |
+| React                  | Construcción de la interfaz de usuario                          |
+| Axios                  | Consumo de la API REST                                          |
+| MySQL/MariaDB          | Almacenamiento relacional de datos                              |
+| React Router DOM       | Navegación entre módulos                                        |
+| Recharts               | Visualización de estadísticas en el dashboard                   |
+| Framer Motion          | Animaciones y transiciones suaves                               |
+| SweetAlert2            | Confirmación visual de acciones sensibles                       |
+| React Toastify         | Notificaciones de éxito y error                                 |
+| d3-geo + world-atlas   | Simulación de vuelo sobre mapa mundial local                    |
+| GitHub                 | Control de versiones y publicación del código                   |
+| Composer y npm         | Instalación y gestión de dependencias                           |
+
+Nota. Elaboración propia.
+
+
+CAPÍTULO 5. GUÍA DE INSTALACIÓN Y CONFIGURACIÓN
+
+5.1 Requisitos previos
+
+Para ejecutar el proyecto desde cero se requiere tener instalado:
+
+1. PHP 8.2 o superior.
+2. Composer.
+3. MySQL o MariaDB.
+4. Node.js 18 o superior.
+5. npm.
+6. Git.
+
+También se recomienda contar con un servidor local como Laragon o XAMPP y un editor de código para revisar el proyecto.
+
+5.2 Instalación del backend
+
+Paso 1. Clonar el repositorio desde GitHub.
+
+git clone https://github.com/russiandoomer/aerolink-proyecto-final.git
+cd aerolink-proyecto-final
+
+Paso 2. Instalar dependencias de Laravel.
+
+composer install
+
+Paso 3. Crear el archivo de entorno.
+
+En Windows:
+copy .env.example .env
+
+En otros sistemas:
+cp .env.example .env
+
+Paso 4. Generar la clave de aplicación.
+
+php artisan key:generate
+
+5.3 Instalación del frontend
+
+Paso 1. Ingresar a la carpeta del frontend.
+
+cd frontend
+
+Paso 2. Instalar dependencias.
+
+npm install
+
+Paso 3. Crear el archivo de entorno del frontend.
+
+En Windows:
+copy .env.example .env
+
+En otros sistemas:
+cp .env.example .env
+
+5.4 Configuración de variables de entorno
+
+En el backend se deben configurar variables como las siguientes:
+
+APP_NAME=AeroLink
+APP_URL=http://127.0.0.1:8000
+FRONTEND_URL=http://127.0.0.1:5173
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=tecnoweb2
+DB_USERNAME=root
+DB_PASSWORD=
+
+API_KEY=aero123
+
+En el frontend:
+
+VITE_API_BASE_URL=http://127.0.0.1:8000/api
+VITE_API_KEY=aero123
+
+5.5 Creación de la base de datos
+
+Antes de correr migraciones, se debe crear una base vacía en MySQL o MariaDB, por ejemplo:
+
+Nombre sugerido: tecnoweb2
+
+La creación puede realizarse desde phpMyAdmin, MySQL Workbench, Adminer o consola SQL. Lo importante es que el nombre coincida con DB_DATABASE en el archivo .env.
+
+5.6 Ejecución de migraciones
+
+Una vez configurado el entorno, se deben ejecutar las migraciones:
+
+php artisan migrate
+
+En el proyecto AeroLink existen 12 migraciones, incluyendo tablas del dominio y tablas base de Laravel.
+
+5.7 Ejecución de seeders
+
+Para poblar la base con datos iniciales y de demostración se puede ejecutar:
+
+php artisan db:seed
+
+O, para realizar ambos pasos de una sola vez:
+
+php artisan migrate --seed
+
+Los seeders principales del proyecto son:
+
+EstadoVueloSeeder
+AeropuertoCatalogoSeeder
+DatosDemoSeeder
+
+Estos archivos generan estados de vuelo, catálogo de aeropuertos con coordenadas y datos demo de aerolínea, flota, rutas, vuelos, pasajeros y reservas.
+
+5.8 Inicio del servidor Laravel
+
+Desde la raíz del proyecto se inicia el backend con:
+
+php artisan serve
+
+Por defecto, Laravel quedará accesible en:
+
+http://127.0.0.1:8000
+
+5.9 Inicio del frontend React
+
+Desde la carpeta frontend se inicia el cliente con:
+
+npm run dev
+
+Por defecto, Vite mostrará una dirección similar a:
+
+http://127.0.0.1:5173
+
+5.10 Conexión entre frontend y backend
+
+La conexión se realiza a través de las variables VITE_API_BASE_URL y VITE_API_KEY. Si ambas apuntan correctamente al backend y a la API key definida, el sistema podrá consumir datos sin problemas.
+
+Como verificación rápida, se recomienda abrir primero:
+
+http://127.0.0.1:8000/estado-api
+
+Luego:
+
+http://127.0.0.1:8000/api/dashboard/resumen
+
+Si ambos endpoints responden, el frontend debería poder conectarse correctamente.
+
+5.11 Consideraciones para clonar desde GitHub
+
+Al clonar el proyecto, no se recibirán archivos sensibles como .env, ni carpetas generadas como vendor o node_modules. Por esa razón, siempre es necesario:
+
+1. Instalar dependencias con composer install y npm install.
+2. Crear manualmente el archivo .env a partir de .env.example.
+3. Crear la base de datos local.
+4. Ejecutar migraciones y seeders.
+5. Iniciar backend y frontend por separado.
+
+Figura 14. Clonación del repositorio desde GitHub.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar la terminal al ejecutar git clone con la URL del repositorio.
+
+Figura 15. Ejecución correcta del backend Laravel.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar la consola mostrando php artisan serve sin errores y la URL local del servidor.
+
+Figura 16. Ejecución correcta del frontend React.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar la terminal del frontend mostrando npm run dev con la URL local de Vite.
+
+
+CAPÍTULO 6. GUÍA DE USUARIO
+
+6.1 Ingreso al sistema
+
+Una vez iniciado el frontend, el usuario accede al sistema desde el navegador. La vista inicial muestra el dashboard principal con métricas y accesos al resto de módulos.
+
+6.2 Navegación principal
+
+El sistema dispone de un menú lateral que organiza los módulos principales: dashboard, vuelos, reservas, pasajeros, rutas, aeropuertos, simulación, flota y aerolíneas. Al seleccionar una opción, el contenido central cambia sin recargar la página.
+
+6.3 Registro de vuelos
+
+El usuario ingresa al módulo de vuelos.
+Selecciona el botón de nuevo registro.
+Completa los campos de aerolínea, avión, ruta, estado, código, fechas, terminal, puerta, capacidad y precio base.
+Presiona guardar.
+El sistema valida la información y registra el vuelo.
+La tabla se actualiza con el nuevo resultado.
+
+6.4 Registro de pasajeros
+
+El usuario abre el módulo de pasajeros.
+Completa el formulario con nombres, apellidos, tipo de documento, número de documento, fecha de nacimiento, nacionalidad, teléfono y correo.
+Presiona guardar.
+El sistema registra el pasajero y lo deja disponible para reservas futuras.
+
+6.5 Creación de reservas
+
+El usuario ingresa al módulo de reservas.
+Selecciona un vuelo y luego un pasajero.
+Ingresa código de reserva, asiento, clase, estado, precio y observaciones.
+Confirma el registro.
+El sistema valida capacidad, asiento disponible y ausencia de duplicidad.
+Finalmente, la reserva aparece en la tabla de resultados.
+
+6.6 Consulta de rutas
+
+El usuario accede al módulo de rutas.
+Puede revisar trayectos existentes, filtrar por origen, destino o estado y registrar nuevas rutas si es necesario.
+Cada ruta muestra el código, la duración, la tarifa base y si está activa.
+
+6.7 Monitoreo de flota
+
+Desde el módulo de flota el usuario visualiza las aeronaves disponibles.
+Puede consultar matrícula, modelo, fabricante, capacidad y estado operativo.
+También puede registrar nuevas aeronaves o actualizar la información de mantenimiento.
+
+6.8 Visualización del dashboard
+
+El dashboard se actualiza al cargar el sistema y muestra indicadores globales.
+Si se registra o modifica un vuelo, una reserva o un estado, la información puede reflejarse al volver a consultar el resumen.
+Las gráficas permiten identificar distribución por estado, ocupación y rotación de rutas.
+
+6.9 Búsquedas, filtros y acciones principales
+
+La mayoría de los módulos cuenta con búsqueda por texto, filtros por listas desplegables y paginación.
+Cada tabla permite editar y eliminar registros.
+Cuando una acción es crítica, el sistema solicita confirmación mediante una alerta.
+Cuando ocurre un error o un registro se guarda correctamente, se muestra una notificación breve.
+
+Figura 17. Pantalla inicial del sistema.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar el frontend en la ruta principal, mostrando el dashboard al iniciar.
+
+Figura 18. Menú principal de navegación.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar el sidebar izquierdo con todos los módulos visibles.
+
+Figura 19. Registro de un nuevo vuelo.
+Nota. Elaboración propia.
+Sugerencia de imagen: mostrar el formulario del módulo de vuelos completo antes de guardar.
+
+Figura 20. Visualización del dashboard general.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar las tarjetas y gráficas más representativas del dashboard.
+
+
+CAPÍTULO 7. RESULTADOS
+
+Los resultados obtenidos muestran que el sistema AeroLink cumple con los objetivos planteados. El backend en Laravel responde a solicitudes de consulta y escritura, el frontend en React consume la API de forma correcta y la base de datos relacional almacena y relaciona la información de manera consistente. Las operaciones CRUD se ejecutan en los módulos principales y las validaciones del servidor reducen el riesgo de errores de negocio.
+
+El dashboard responde con datos agregados y presenta información útil para la interpretación rápida del estado del sistema. Durante la validación con datos demo, el resumen devolvió 3 vuelos, 3 pasajeros, 3 reservas y 2 aeronaves activas. También se visualizaron vuelos en estados programado, embarcando y demorado, así como la distribución de reservas entre clase económica y ejecutiva.
+
+La interfaz logró una experiencia dinámica gracias al consumo asincrónico de la API. El usuario puede navegar, filtrar, registrar y editar información sin recargar la página. Además, el módulo de simulación de vuelo permitió observar rutas entre países y aeropuertos con una animación acelerada, lo que aportó valor visual a la demostración del sistema.
+
+Tabla 2. Indicadores de implementación y resultados
+
+| Indicador                        | Resultado obtenido                                                     |
+|----------------------------------|------------------------------------------------------------------------|
+| Módulos implementados            | 7 módulos funcionales principales y 1 módulo adicional de simulación   |
+| Número de tablas migradas        | 12 tablas en total                                                     |
+| Tablas del dominio principal     | 8 tablas: aerolineas, aeropuertos, aviones, rutas, estados, vuelos, pasajeros, reservas |
+| Cantidad de endpoints registrados| 42 rutas registradas en Laravel                                        |
+| Funcionalidades completadas      | CRUD, filtros, dashboard, estados de vuelo, simulación, seeders, despliegue |
+
+Nota. Elaboración propia.
+
+Figura 21. Resultado de las pruebas del sistema.
+Nota. Elaboración propia.
+Sugerencia de imagen: capturar una vista donde se observen varios módulos con datos ya cargados y funcionamiento correcto.
+
+Figura 22. Consumo exitoso de la API desde React.
+Nota. Elaboración propia.
+Sugerencia de imagen: abrir las herramientas del navegador en la pestaña Network o capturar el funcionamiento visible del dashboard después de cargar datos desde la API.
+
+
+CAPÍTULO 8. DISCUSIÓN
+
+Durante el desarrollo del proyecto se identificaron varias dificultades técnicas típicas de un sistema web integrado. Una de las primeras fue la coordinación entre la estructura de base de datos y la lógica del backend. Fue necesario redefinir migraciones antiguas, limpiar dependencias heredadas y volver a sembrar la base con una estructura coherente con el modelo final del proyecto.
+
+También se presentaron problemas relacionados con la integración entre frontend y backend. Entre ellos destacaron configuraciones incorrectas de variables de entorno, diferencias de versión de PHP entre distintos entornos, ajustes de CORS y validación del despliegue. Estos inconvenientes obligaron a revisar rutas, cabeceras HTTP, URL base de la API y parámetros de publicación.
+
+Otra dificultad relevante estuvo en la simulación de vuelo. En una etapa intermedia se intentó utilizar un enfoque basado en mapas externos, pero la visualización resultó poco estable en producción. Debido a ello, se optó por una solución más controlada, basada en datos geográficos locales con d3-geo, topojson-client y world-atlas. Esta decisión mejoró la confiabilidad del sistema y redujo la dependencia de servicios externos.
+
+En el frontend también se afrontaron retos vinculados al manejo de estado, a la reutilización de componentes y a la carga de datos en catálogos. Para resolver esto se centralizó gran parte de la lógica CRUD en ResourceManager y se diseñó una capa de acceso a datos reutilizable en resources.js. Esta estrategia simplificó la construcción de los módulos y mantuvo consistencia en la interfaz.
+
+Como limitaciones del proyecto, debe reconocerse que la seguridad implementada es básica, ya que las operaciones de escritura se protegen mediante una API key sencilla. Además, el sistema no incluye autenticación completa por roles, no administra asientos con una vista gráfica y no contempla complejidades reales del sector, como escalas, múltiples tramos, check-in, equipaje detallado o integración con servicios aeronáuticos externos.
+
+Entre las mejoras futuras se podrían incluir autenticación formal, reportes PDF, exportación de datos, auditoría de acciones, simulaciones más avanzadas, paneles históricos y una administración más profunda de operaciones aeroportuarias. Sin embargo, dentro del alcance universitario definido, el sistema alcanzó un nivel adecuado de funcionalidad y presentación.
+
+
+CONCLUSIONES
+
+1. Se desarrolló un sistema web funcional de simulación y logística aérea que integra gestión de vuelos, pasajeros, reservas, rutas, flota, aeropuertos, dashboard y simulación visual en una sola plataforma.
+
+2. La arquitectura desacoplada entre Laravel, React y MySQL/MariaDB permitió organizar adecuadamente el proyecto y facilitó la comunicación entre frontend y backend mediante una API REST.
+
+3. La base de datos relacional diseñada para AeroLink representó correctamente las entidades principales del dominio, y las relaciones entre tablas permitieron aplicar validaciones de negocio coherentes.
+
+4. El dashboard y la interfaz reactiva mejoraron la experiencia de usuario y demostraron que el sistema puede actualizar información de manera dinámica sin recargar la página.
+
+5. La incorporación del módulo de simulación de vuelo añadió valor visual al proyecto y reforzó su carácter demostrativo, manteniendo un enfoque estable y defendible para la exposición.
+
+6. El uso de GitHub, Composer, npm y servicios de despliegue permitió que el sistema no solo funcione en local, sino que también quede preparado para ser compartido, evaluado y reconstruido desde cero.
+
+
+RECOMENDACIONES
+
+1. Se recomienda implementar en una futura versión un sistema de autenticación con roles y permisos para fortalecer la seguridad del backend.
+
+2. Se sugiere ampliar el catálogo de aeropuertos y rutas para generar simulaciones más extensas y escenarios operativos más variados.
+
+3. Se recomienda incorporar módulos adicionales, como reportes exportables, historial de cambios y paneles comparativos de periodos.
+
+4. Se aconseja mantener el repositorio actualizado y documentado, de modo que cualquier docente o compañero pueda ejecutar el sistema sin depender del entorno original de desarrollo.
+
+5. Se recomienda considerar pruebas automatizadas y validaciones más profundas en futuras iteraciones, especialmente para reservas, cambios de estado y consistencia entre módulos.
+
+6. Se sugiere mantener el enfoque de diseño sobrio y profesional, evitando sobrecargar la interfaz con efectos innecesarios que no aporten a la utilidad del sistema.
+
+
+REFERENCIAS
+
+Axios Contributors. (n.d.). Getting started. Axios Docs. https://axios-http.com/docs/intro
+
+Composer. (n.d.). Composer: A dependency manager for PHP. https://getcomposer.org/
+
+Elmasri, R., & Navathe, S. B. (2016). Fundamentals of database systems (7th ed.). Pearson.
+
+Fielding, R. T. (2000). Architectural styles and the design of network-based software architectures [Doctoral dissertation, University of California, Irvine]. University of California, Irvine. https://ics.uci.edu/~fielding/pubs/dissertation/top.htm
+
+Few, S. (2013). Information dashboard design: Displaying data for at-a-glance monitoring (2nd ed.). Analytics Press.
+
+GitHub, Inc. (n.d.). About repositories. GitHub Docs. https://docs.github.com/en/repositories/creating-and-managing-repositories/about-repositories
+
+International Air Transport Association. (n.d.). Airport & location identifier database. IATA. https://www.iata.org/en/publications/manuals/airline-airport-location-coding-databases/airport-location-identifier-database/
+
+International Civil Aviation Organization. (n.d.). Operational measures. ICAO. https://www.icao.int/operational-measures
+
+Laravel. (n.d.). Laravel 10.x documentation. https://laravel.com/docs/10.x/documentation
+
+Motion. (n.d.). Motion for React. https://motion.dev/docs/react
+
+Oracle. (n.d.). MySQL 8.0 reference manual. https://dev.mysql.com/doc/refman/8.0/en/
+
+Pressman, R. S., & Maxim, B. R. (2020). Software engineering: A practitioner’s approach (9th ed.). McGraw-Hill.
+
+React Team. (n.d.). React documentation. https://react.dev/
+
+Recharts. (n.d.). Recharts documentation. https://recharts.github.io/en-US/
+
+Sommerville, I. (2016). Software engineering (10th ed.). Pearson.
+
+Vite. (n.d.). Getting started. https://vite.dev/guide/
+
+
+ANEXOS
+
+Anexo A. Script SQL o migraciones
+
+Migraciones principales del proyecto:
+
+2014_10_12_000000_create_users_table.php
+2014_10_12_100000_create_password_reset_tokens_table.php
+2019_08_19_000000_create_failed_jobs_table.php
+2019_12_14_000001_create_personal_access_tokens_table.php
+2026_03_30_000001_create_aerolineas_table.php
+2026_03_30_000002_create_aeropuertos_table.php
+2026_03_30_000003_create_aviones_table.php
+2026_03_30_000004_create_rutas_table.php
+2026_03_30_000005_create_estados_vuelo_table.php
+2026_03_30_000006_create_vuelos_table.php
+2026_03_30_000007_create_pasajeros_table.php
+2026_03_30_000008_create_reservas_table.php
+
+Observación:
+Para el anexo formal en Word se recomienda copiar fragmentos de create_vuelos_table.php, create_rutas_table.php y create_reservas_table.php, ya que son las migraciones que mejor representan la lógica del dominio.
+
+Anexo B. Fragmentos de código importantes
+
+1. Ruta del dashboard:
+Route::get('/dashboard/resumen', [DashboardController::class, 'resumen']);
+
+2. Cliente Axios:
+const http = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api',
+});
+
+3. Relación de modelo:
+public function reservas(): HasMany
+{
+    return $this->hasMany(Reserva::class);
+}
+
+4. Conteo del dashboard:
+$totales = [
+    'vuelos' => Vuelo::count(),
+    'pasajeros' => Pasajero::count(),
+    'reservas' => Reserva::count(),
+    'flota_activa' => Avion::where('estado', 'activo')->count(),
+];
+
+Anexo C. Capturas del sistema
+
+Se recomienda anexar las siguientes capturas:
+
+1. Dashboard principal.
+2. Gestión de vuelos.
+3. Registro de pasajero.
+4. Pantalla de reservas.
+5. Gestión de rutas.
+6. Gestión de flota.
+7. Módulo de simulación de vuelo.
+8. Consola con migraciones ejecutadas.
+9. Consola con frontend levantado.
+10. Respuesta JSON del endpoint /api/dashboard/resumen.
+
+Anexo D. Endpoints de la API
+
+GET /api/aerolineas
+POST /api/aerolineas
+GET /api/aerolineas/{id}
+PUT/PATCH /api/aerolineas/{id}
+DELETE /api/aerolineas/{id}
+
+GET /api/aeropuertos
+GET /api/aeropuertos/catalogo
+POST /api/aeropuertos
+GET /api/aeropuertos/{id}
+PUT/PATCH /api/aeropuertos/{id}
+DELETE /api/aeropuertos/{id}
+
+GET /api/aviones
+POST /api/aviones
+GET /api/aviones/{id}
+PUT/PATCH /api/aviones/{id}
+DELETE /api/aviones/{id}
+
+GET /api/rutas
+POST /api/rutas
+GET /api/rutas/{id}
+PUT/PATCH /api/rutas/{id}
+DELETE /api/rutas/{id}
+
+GET /api/vuelos
+POST /api/vuelos
+GET /api/vuelos/{id}
+PUT/PATCH /api/vuelos/{id}
+DELETE /api/vuelos/{id}
+PATCH /api/vuelos/{id}/estado
+
+GET /api/pasajeros
+POST /api/pasajeros
+GET /api/pasajeros/{id}
+PUT/PATCH /api/pasajeros/{id}
+DELETE /api/pasajeros/{id}
+
+GET /api/reservas
+POST /api/reservas
+GET /api/reservas/{id}
+PUT/PATCH /api/reservas/{id}
+DELETE /api/reservas/{id}
+
+GET /api/estados-vuelo
+GET /api/estados-vuelo/{id}
+GET /api/dashboard/resumen
+GET /estado-api
+
+Anexo E. Link del repositorio GitHub
+
+Repositorio del proyecto:
+https://github.com/russiandoomer/aerolink-proyecto-final
+
+Frontend desplegado:
+https://aerolink-proyecto-final-frontend.vercel.app/
+
+Backend desplegado:
+https://aerolink-proyecto-final-production.up.railway.app/
+
+Anexo F. Guía corta de instalación
+
+1. Clonar el repositorio.
+2. Instalar dependencias del backend con composer install.
+3. Crear .env y ejecutar php artisan key:generate.
+4. Crear la base de datos.
+5. Ejecutar php artisan migrate --seed.
+6. Iniciar Laravel con php artisan serve.
+7. Entrar a frontend, instalar dependencias con npm install.
+8. Crear frontend/.env y configurar VITE_API_BASE_URL.
+9. Iniciar el frontend con npm run dev.
+10. Abrir el sistema en el navegador.
+
+
+ÍNDICE RESUMIDO DEL DOCUMENTO
+
+PORTADA
+RESUMEN
+INTRODUCCIÓN
+CAPÍTULO 1. MARCO TEÓRICO
+1.1 Laravel
+1.2 React
+1.3 API REST
+1.4 Arquitectura MVC
+1.5 Bases de datos relacionales
+1.6 Sistemas de logística aérea
+1.7 Dashboards interactivos
+1.8 Fetch / Axios y asincronía
+1.9 Librerías de animación e interfaz
+1.10 GitHub como herramienta de control de versiones
+CAPÍTULO 2. METODOLOGÍA
+2.1 Metodología utilizada
+2.2 Arquitectura del sistema
+2.3 Diseño de la base de datos
+2.4 Backend en Laravel
+2.5 Frontend en React
+2.6 Comunicación mediante API REST
+2.7 Librerías y herramientas utilizadas
+2.8 GitHub y control de versiones
+2.9 Organización del trabajo del equipo
+CAPÍTULO 3. DESARROLLO DEL SISTEMA
+3.1 Módulo de vuelos
+3.2 Módulo de pasajeros
+3.3 Módulo de reservas
+3.4 Módulo de rutas
+3.5 Módulo de flota
+3.6 Dashboard
+3.7 Módulo de simulación de vuelo
+CAPÍTULO 4. APIs, LIBRERÍAS Y HERRAMIENTAS UTILIZADAS
+CAPÍTULO 5. GUÍA DE INSTALACIÓN Y CONFIGURACIÓN
+CAPÍTULO 6. GUÍA DE USUARIO
+CAPÍTULO 7. RESULTADOS
+CAPÍTULO 8. DISCUSIÓN
+CONCLUSIONES
+RECOMENDACIONES
+REFERENCIAS
+ANEXOS

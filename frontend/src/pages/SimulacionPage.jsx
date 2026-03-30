@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, RotateCcw } from 'lucide-react';
-import { fetchAirportCatalog } from '../api/resources';
+import { MapPinned, Play, RotateCcw } from 'lucide-react';
+import {
+    fetchAirportCatalog,
+    fetchSimulationFlights,
+} from '../api/resources';
 import EmptyState from '../components/common/EmptyState';
 import FadeInBlock from '../components/common/FadeInBlock';
 import LoadingState from '../components/common/LoadingState';
 import PageHeader from '../components/common/PageHeader';
+import StatusBadge from '../components/common/StatusBadge';
 import SimulationMap from '../components/simulation/SimulationMap';
+import {
+    formatDateTime,
+    formatFlightLabel,
+    formatRouteLabel,
+} from '../utils/format';
 
 const SPEED_OPTIONS = [
     { value: 'rapida', label: 'Rapida (6 s)', duration: 6000 },
@@ -13,11 +22,38 @@ const SPEED_OPTIONS = [
     { value: 'presentacion', label: 'Presentacion (12 s)', duration: 12000 },
 ];
 
+const SIMULATION_MODES = {
+    FLIGHT: 'flight',
+    MANUAL: 'manual',
+};
+
 function normalizeAirport(airport) {
     return {
         ...airport,
         latitud: Number(airport.latitud),
         longitud: Number(airport.longitud),
+    };
+}
+
+function normalizeFlight(flight) {
+    const rawOriginAirport = flight?.ruta?.aeropuertoOrigen ?? flight?.ruta?.aeropuerto_origen;
+    const rawDestinationAirport = flight?.ruta?.aeropuertoDestino ?? flight?.ruta?.aeropuerto_destino;
+    const originAirport = rawOriginAirport
+        ? normalizeAirport(rawOriginAirport)
+        : null;
+    const destinationAirport = rawDestinationAirport
+        ? normalizeAirport(rawDestinationAirport)
+        : null;
+
+    return {
+        ...flight,
+        ruta: {
+            ...flight.ruta,
+            aeropuertoOrigen: originAirport,
+            aeropuertoDestino: destinationAirport,
+            aeropuerto_origen: originAirport,
+            aeropuerto_destino: destinationAirport,
+        },
     };
 }
 
@@ -45,9 +81,16 @@ function haversineDistance(origin, destination) {
     return Math.round(earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
+function toneFromFlightState(color) {
+    return color ?? 'slate';
+}
+
 export default function SimulacionPage() {
     const [catalog, setCatalog] = useState(null);
+    const [flights, setFlights] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [simulationMode, setSimulationMode] = useState(SIMULATION_MODES.FLIGHT);
+    const [selectedFlightId, setSelectedFlightId] = useState('');
     const [originCountry, setOriginCountry] = useState('');
     const [destinationCountry, setDestinationCountry] = useState('');
     const [originAirportId, setOriginAirportId] = useState('');
@@ -60,21 +103,26 @@ export default function SimulacionPage() {
     useEffect(() => {
         let active = true;
 
-        async function loadCatalog() {
+        async function loadData() {
             try {
-                const response = await fetchAirportCatalog();
+                const [airportResponse, flightResponse] = await Promise.all([
+                    fetchAirportCatalog(),
+                    fetchSimulationFlights(),
+                ]);
 
                 if (!active) {
                     return;
                 }
 
-                const airports = (response.airports ?? []).map(normalizeAirport);
-                const countries = response.countries ?? [];
+                const airports = (airportResponse.airports ?? []).map(normalizeAirport);
+                const countries = airportResponse.countries ?? [];
+                const normalizedFlights = (flightResponse ?? []).map(normalizeFlight);
 
                 setCatalog({
                     airports,
                     countries,
                 });
+                setFlights(normalizedFlights);
 
                 const initialOriginCountry = countries.find((item) => item === 'Bolivia') ?? countries[0] ?? '';
                 const initialDestinationCountry =
@@ -85,9 +133,17 @@ export default function SimulacionPage() {
 
                 setOriginCountry(initialOriginCountry);
                 setDestinationCountry(initialDestinationCountry);
+
+                if (normalizedFlights.length > 0) {
+                    setSelectedFlightId(String(normalizedFlights[0].id));
+                    setSimulationMode(SIMULATION_MODES.FLIGHT);
+                } else {
+                    setSimulationMode(SIMULATION_MODES.MANUAL);
+                }
             } catch (error) {
                 if (active) {
                     setCatalog(null);
+                    setFlights([]);
                 }
             } finally {
                 if (active) {
@@ -96,7 +152,7 @@ export default function SimulacionPage() {
             }
         }
 
-        loadCatalog();
+        loadData();
 
         return () => {
             active = false;
@@ -130,6 +186,29 @@ export default function SimulacionPage() {
         () => airportsByCountry.get(destinationCountry) ?? [],
         [airportsByCountry, destinationCountry]
     );
+
+    const selectedFlight = useMemo(
+        () => flights.find((flight) => String(flight.id) === selectedFlightId) ?? null,
+        [flights, selectedFlightId]
+    );
+
+    useEffect(() => {
+        if (simulationMode !== SIMULATION_MODES.FLIGHT || !selectedFlight) {
+            return;
+        }
+
+        const origin = selectedFlight.ruta?.aeropuertoOrigen;
+        const destination = selectedFlight.ruta?.aeropuertoDestino;
+
+        if (!origin || !destination) {
+            return;
+        }
+
+        setOriginCountry(origin.pais);
+        setDestinationCountry(destination.pais);
+        setOriginAirportId(String(origin.id));
+        setDestinationAirportId(String(destination.id));
+    }, [simulationMode, selectedFlight]);
 
     useEffect(() => {
         if (!originAirports.some((airport) => String(airport.id) === originAirportId)) {
@@ -182,7 +261,16 @@ export default function SimulacionPage() {
 
         setProgress(0);
         setPhase('idle');
-    }, [catalog, originCountry, destinationCountry, originAirportId, destinationAirportId, speed]);
+    }, [
+        catalog,
+        simulationMode,
+        selectedFlightId,
+        originCountry,
+        destinationCountry,
+        originAirportId,
+        destinationAirportId,
+        speed,
+    ]);
 
     function resetSimulation() {
         if (animationFrameRef.current) {
@@ -226,7 +314,7 @@ export default function SimulacionPage() {
     }
 
     if (loading) {
-        return <LoadingState label="Cargando catalogo de aeropuertos..." />;
+        return <LoadingState label="Cargando vuelos y catalogo de aeropuertos..." />;
     }
 
     if (!catalog?.airports?.length) {
@@ -242,89 +330,205 @@ export default function SimulacionPage() {
         <section className="simulation-page">
             <PageHeader
                 title="Simulacion de vuelo"
-                description="Visualiza el recorrido completo entre dos aeropuertos sin esperar la duracion real del trayecto. El avion avanza rapido sobre el mapa y muestra claramente origen, destino y progreso."
+                description="Simula vuelos reales registrados en el sistema o construye un recorrido manual usando el catalogo de aeropuertos. La animacion es acelerada y mantiene visible todo el trayecto."
             />
 
             <div className="simulation-layout">
                 <FadeInBlock className="panel-card simulation-panel" delay={0.06}>
                     <div className="section-title">
                         <div>
-                            <strong>Configurar recorrido</strong>
-                            <small>Selecciona pais, aeropuerto y velocidad de simulacion</small>
+                            <strong>Fuente de la simulacion</strong>
+                            <small>Elige si deseas usar un vuelo registrado o un recorrido manual</small>
                         </div>
                     </div>
 
-                    <div className="simulation-form-grid">
-                        <label className="simulation-field">
-                            <span>Pais de origen</span>
-                            <select
-                                value={originCountry}
-                                onChange={(event) => setOriginCountry(event.target.value)}
-                            >
-                                {catalog.countries.map((country) => (
-                                    <option key={country} value={country}>
-                                        {country}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label className="simulation-field">
-                            <span>Aeropuerto de origen</span>
-                            <select
-                                value={originAirportId}
-                                onChange={(event) => setOriginAirportId(event.target.value)}
-                            >
-                                {originAirports.map((airport) => (
-                                    <option key={airport.id} value={airport.id}>
-                                        {airport.codigo_iata} | {airport.ciudad} - {airport.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label className="simulation-field">
-                            <span>Pais de destino</span>
-                            <select
-                                value={destinationCountry}
-                                onChange={(event) => setDestinationCountry(event.target.value)}
-                            >
-                                {catalog.countries.map((country) => (
-                                    <option key={country} value={country}>
-                                        {country}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label className="simulation-field">
-                            <span>Aeropuerto de destino</span>
-                            <select
-                                value={destinationAirportId}
-                                onChange={(event) => setDestinationAirportId(event.target.value)}
-                            >
-                                {destinationAirports.map((airport) => (
-                                    <option key={airport.id} value={airport.id}>
-                                        {airport.codigo_iata} | {airport.ciudad} - {airport.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label className="simulation-field">
-                            <span>Velocidad</span>
-                            <select
-                                value={speed}
-                                onChange={(event) => setSpeed(event.target.value)}
-                            >
-                                {SPEED_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                    <div className="simulation-mode-switch">
+                        <button
+                            type="button"
+                            className={`simulation-mode-button ${simulationMode === SIMULATION_MODES.FLIGHT ? 'is-active' : ''}`}
+                            onClick={() => setSimulationMode(SIMULATION_MODES.FLIGHT)}
+                            disabled={flights.length === 0}
+                        >
+                            Vuelos registrados
+                        </button>
+                        <button
+                            type="button"
+                            className={`simulation-mode-button ${simulationMode === SIMULATION_MODES.MANUAL ? 'is-active' : ''}`}
+                            onClick={() => setSimulationMode(SIMULATION_MODES.MANUAL)}
+                        >
+                            Ruta manual
+                        </button>
                     </div>
+
+                    {simulationMode === SIMULATION_MODES.FLIGHT ? (
+                        <>
+                            <div className="section-title simulation-subtitle">
+                                <div>
+                                    <strong>Seleccionar vuelo</strong>
+                                    <small>Los vuelos creados en el modulo de vuelos aparecen automaticamente aqui</small>
+                                </div>
+                            </div>
+
+                            <div className="simulation-form-grid">
+                                <label className="simulation-field">
+                                    <span>Vuelo disponible</span>
+                                    <select
+                                        value={selectedFlightId}
+                                        onChange={(event) => setSelectedFlightId(event.target.value)}
+                                    >
+                                        {flights.map((flight) => (
+                                            <option key={flight.id} value={flight.id}>
+                                                {formatFlightLabel(flight)} | {flight.aerolinea?.nombre ?? 'Sin aerolinea'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="simulation-field">
+                                    <span>Velocidad</span>
+                                    <select
+                                        value={speed}
+                                        onChange={(event) => setSpeed(event.target.value)}
+                                    >
+                                        {SPEED_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
+
+                            {selectedFlight ? (
+                                <article className="simulation-flight-card">
+                                    <div className="simulation-flight-card__head">
+                                        <div>
+                                            <strong>{selectedFlight.codigo_vuelo}</strong>
+                                            <small>
+                                                {formatRouteLabel(selectedFlight.ruta)} | {selectedFlight.aerolinea?.nombre ?? 'Sin aerolinea'}
+                                            </small>
+                                        </div>
+                                        <StatusBadge
+                                            label={selectedFlight.estado_vuelo?.nombre ?? 'Sin estado'}
+                                            tone={toneFromFlightState(selectedFlight.estado_vuelo?.color)}
+                                        />
+                                    </div>
+
+                                    <div className="simulation-flight-card__grid">
+                                        <div>
+                                            <span>Salida</span>
+                                            <strong>{formatDateTime(selectedFlight.fecha_salida)}</strong>
+                                        </div>
+                                        <div>
+                                            <span>Llegada</span>
+                                            <strong>{formatDateTime(selectedFlight.fecha_llegada)}</strong>
+                                        </div>
+                                        <div>
+                                            <span>Avion</span>
+                                            <strong>{selectedFlight.avion?.matricula ?? '--'}</strong>
+                                        </div>
+                                        <div>
+                                            <span>Reservas activas</span>
+                                            <strong>{selectedFlight.reservas_activas_count ?? 0}</strong>
+                                        </div>
+                                    </div>
+
+                                    <div className="simulation-flight-card__route">
+                                        <MapPinned size={16} />
+                                        <span>
+                                            {selectedFlight.ruta?.aeropuertoOrigen?.ciudad ?? '--'} - {selectedFlight.ruta?.aeropuertoDestino?.ciudad ?? '--'}
+                                        </span>
+                                    </div>
+                                </article>
+                            ) : (
+                                <EmptyState
+                                    title="No hay vuelos simulables."
+                                    description="Registra vuelos con rutas cuyos aeropuertos tengan coordenadas para visualizarlos aqui."
+                                />
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <div className="section-title simulation-subtitle">
+                                <div>
+                                    <strong>Configurar recorrido manual</strong>
+                                    <small>Usa el catalogo de paises y aeropuertos para construir una ruta personalizada</small>
+                                </div>
+                            </div>
+
+                            <div className="simulation-form-grid">
+                                <label className="simulation-field">
+                                    <span>Pais de origen</span>
+                                    <select
+                                        value={originCountry}
+                                        onChange={(event) => setOriginCountry(event.target.value)}
+                                    >
+                                        {catalog.countries.map((country) => (
+                                            <option key={country} value={country}>
+                                                {country}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="simulation-field">
+                                    <span>Aeropuerto de origen</span>
+                                    <select
+                                        value={originAirportId}
+                                        onChange={(event) => setOriginAirportId(event.target.value)}
+                                    >
+                                        {originAirports.map((airport) => (
+                                            <option key={airport.id} value={airport.id}>
+                                                {airport.codigo_iata} | {airport.ciudad} - {airport.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="simulation-field">
+                                    <span>Pais de destino</span>
+                                    <select
+                                        value={destinationCountry}
+                                        onChange={(event) => setDestinationCountry(event.target.value)}
+                                    >
+                                        {catalog.countries.map((country) => (
+                                            <option key={country} value={country}>
+                                                {country}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="simulation-field">
+                                    <span>Aeropuerto de destino</span>
+                                    <select
+                                        value={destinationAirportId}
+                                        onChange={(event) => setDestinationAirportId(event.target.value)}
+                                    >
+                                        {destinationAirports.map((airport) => (
+                                            <option key={airport.id} value={airport.id}>
+                                                {airport.codigo_iata} | {airport.ciudad} - {airport.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="simulation-field">
+                                    <span>Velocidad</span>
+                                    <select
+                                        value={speed}
+                                        onChange={(event) => setSpeed(event.target.value)}
+                                    >
+                                        {SPEED_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
+                        </>
+                    )}
 
                     <div className="simulation-actions">
                         <button
@@ -377,11 +581,9 @@ export default function SimulacionPage() {
                                       : 'Listo para iniciar'}
                             </strong>
                             <small>
-                                {phase === 'running'
-                                    ? 'La trayectoria avanza de forma acelerada para exposicion o demostracion.'
-                                    : phase === 'completed'
-                                      ? 'Puedes reiniciar la vista o cambiar el destino para otra prueba.'
-                                      : 'No se aplica despegue ni aterrizaje, solo recorrido continuo y visible.'}
+                                {simulationMode === SIMULATION_MODES.FLIGHT
+                                    ? 'La simulacion toma los datos del vuelo registrado y reproduce su trayecto de forma acelerada.'
+                                    : 'La trayectoria se construye manualmente a partir del catalogo de aeropuertos con coordenadas.'}
                             </small>
                         </div>
 
@@ -392,10 +594,10 @@ export default function SimulacionPage() {
                 </FadeInBlock>
 
                 <div className="panel-card simulation-map-panel">
-                        <div className="section-title">
+                    <div className="section-title">
                         <div>
                             <strong>Recorrido visual completo</strong>
-                            <small>Vista global estilizada con ruta iluminada, progreso operativo y movimiento continuo del avion</small>
+                            <small>Vista global con avance continuo, origen, destino y progreso operativo</small>
                         </div>
                     </div>
 

@@ -21,8 +21,8 @@ class VueloController extends Controller
                 'avion:id,matricula,modelo',
                 'estadoVuelo:id,nombre,color,codigo',
                 'ruta:id,codigo,aeropuerto_origen_id,aeropuerto_destino_id',
-                'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad',
-                'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad',
+                'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
+                'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
             ])
             ->withCount([
                 'reservas',
@@ -69,8 +69,8 @@ class VueloController extends Controller
                 'avion:id,matricula,modelo,fabricante,capacidad',
                 'estadoVuelo:id,nombre,color,codigo,descripcion',
                 'ruta:id,codigo,distancia_km,duracion_minutos,tarifa_base,aeropuerto_origen_id,aeropuerto_destino_id',
-                'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais',
-                'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais',
+                'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
+                'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
                 'reservas' => fn ($query) => $query
                     ->with('pasajero:id,nombres,apellidos,numero_documento')
                     ->orderByDesc('fecha_reserva'),
@@ -199,8 +199,8 @@ class VueloController extends Controller
             'avion:id,matricula,modelo,capacidad',
             'estadoVuelo:id,nombre,color,codigo',
             'ruta:id,codigo,aeropuerto_origen_id,aeropuerto_destino_id',
-            'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad',
-            'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad',
+            'ruta.aeropuertoOrigen:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
+            'ruta.aeropuertoDestino:id,nombre,codigo_iata,ciudad,pais,latitud,longitud',
         ])->loadCount([
             'reservas',
             'reservas as reservas_activas_count' => fn ($query) => $query->where('estado', '!=', 'cancelada'),

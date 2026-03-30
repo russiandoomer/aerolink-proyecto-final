@@ -56,6 +56,26 @@ export async function fetchDashboardSummary() {
     return response.data?.data ?? response.data;
 }
 
+function normalizeSimulationFlights(items) {
+    return items.filter((flight) => {
+        const origin = flight?.ruta?.aeropuertoOrigen;
+        const destination = flight?.ruta?.aeropuertoDestino;
+
+        return (
+            origin &&
+            destination &&
+            origin.latitud !== null &&
+            origin.latitud !== undefined &&
+            origin.longitud !== null &&
+            origin.longitud !== undefined &&
+            destination.latitud !== null &&
+            destination.latitud !== undefined &&
+            destination.longitud !== null &&
+            destination.longitud !== undefined
+        );
+    });
+}
+
 function normalizeAirportCatalogPayload(payload) {
     const airports = Array.isArray(payload?.airports)
         ? payload.airports
@@ -103,4 +123,12 @@ export async function fetchAirportCatalog() {
 
         return normalizeAirportCatalogPayload(response.data);
     }
+}
+
+export async function fetchSimulationFlights() {
+    const response = await fetchCollection('vuelos', {
+        per_page: 200,
+    });
+
+    return normalizeSimulationFlights(response.items);
 }
