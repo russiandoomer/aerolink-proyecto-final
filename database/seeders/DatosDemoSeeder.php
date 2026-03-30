@@ -10,14 +10,15 @@ class DatosDemoSeeder extends Seeder
     public function run(): void
     {
         $timestamp = now();
+        $airlineDefinitions = $this->airlineDefinitions();
 
-        $this->seedAirlines($timestamp);
+        $this->seedAirlines($timestamp, $airlineDefinitions);
 
         $airlineIds = DB::table('aerolineas')->pluck('id', 'codigo_iata')->all();
         $airportIds = DB::table('aeropuertos')->pluck('id', 'codigo_iata')->all();
         $stateIds = DB::table('estados_vuelo')->pluck('id', 'codigo')->all();
 
-        $aircraftDefinitions = $this->aircraftDefinitions();
+        $aircraftDefinitions = $this->aircraftDefinitions($airlineDefinitions);
         $routeDefinitions = $this->routeDefinitions();
         $flightDefinitions = $this->flightDefinitions();
         $passengerDefinitions = $this->passengerDefinitions();
@@ -40,54 +41,22 @@ class DatosDemoSeeder extends Seeder
         );
     }
 
-    private function seedAirlines($timestamp): void
+    private function seedAirlines($timestamp, array $definitions): void
     {
-        DB::table('aerolineas')->upsert([
-            [
-                'nombre' => 'AeroLink Bolivia',
-                'codigo_iata' => 'ALB',
-                'pais' => 'Bolivia',
-                'telefono' => '+591 3 3344556',
-                'email' => 'operaciones@aerolink.test',
-                'activa' => true,
+        $rows = array_map(function (array $definition) use ($timestamp) {
+            return [
+                ...$definition,
                 'deleted_at' => null,
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp,
-            ],
-            [
-                'nombre' => 'SkyBridge Andes',
-                'codigo_iata' => 'SKA',
-                'pais' => 'Peru',
-                'telefono' => '+51 1 4459000',
-                'email' => 'control@skybridge.test',
-                'activa' => true,
-                'deleted_at' => null,
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp,
-            ],
-            [
-                'nombre' => 'Pacifica Air',
-                'codigo_iata' => 'PAC',
-                'pais' => 'Chile',
-                'telefono' => '+56 2 25566000',
-                'email' => 'ops@pacifica.test',
-                'activa' => true,
-                'deleted_at' => null,
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp,
-            ],
-            [
-                'nombre' => 'Nova Atlantic',
-                'codigo_iata' => 'NVA',
-                'pais' => 'Sudafrica',
-                'telefono' => '+27 11 5502200',
-                'email' => 'dispatch@novaatlantic.test',
-                'activa' => true,
-                'deleted_at' => null,
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp,
-            ],
-        ], ['codigo_iata'], ['nombre', 'pais', 'telefono', 'email', 'activa', 'deleted_at', 'updated_at']);
+            ];
+        }, $definitions);
+
+        DB::table('aerolineas')->upsert(
+            $rows,
+            ['codigo_iata'],
+            ['nombre', 'pais', 'telefono', 'email', 'activa', 'deleted_at', 'updated_at']
+        );
     }
 
     private function seedAircraft($timestamp, array $definitions, array $airlineIds): void
@@ -375,9 +344,140 @@ class DatosDemoSeeder extends Seeder
         return 'Reserva registrada correctamente para operacion regular.';
     }
 
-    private function aircraftDefinitions(): array
+    private function airlineDefinitions(): array
     {
-        return [
+        $countryCatalog = [
+            'Bolivia' => [
+                ['codigo' => 'ALB', 'nombre' => 'AeroLink Bolivia'],
+                ['codigo' => 'BVA', 'nombre' => 'Altiplano Bolivia Air'],
+                ['codigo' => 'BVC', 'nombre' => 'Oriente Bolivia Connect'],
+                ['codigo' => 'BVD', 'nombre' => 'Condor Bolivia'],
+            ],
+            'Peru' => [
+                ['codigo' => 'SKA', 'nombre' => 'SkyBridge Andes'],
+                ['codigo' => 'PEA', 'nombre' => 'Inca Pacific Air'],
+                ['codigo' => 'PEB', 'nombre' => 'Sierra Peru Lines'],
+                ['codigo' => 'PEC', 'nombre' => 'Costa Peru Jet'],
+            ],
+            'Chile' => [
+                ['codigo' => 'PAC', 'nombre' => 'Pacifica Air'],
+                ['codigo' => 'CLA', 'nombre' => 'Cordillera Chile Air'],
+                ['codigo' => 'CLB', 'nombre' => 'Atacama Blue'],
+                ['codigo' => 'CLC', 'nombre' => 'Sur Chile Connect'],
+            ],
+            'Argentina' => [
+                ['codigo' => 'ARA', 'nombre' => 'Pampas Air'],
+                ['codigo' => 'ARB', 'nombre' => 'Rio de la Plata Jet'],
+                ['codigo' => 'ARC', 'nombre' => 'Cordoba Connect'],
+                ['codigo' => 'ARD', 'nombre' => 'Austral Red'],
+            ],
+            'Brasil' => [
+                ['codigo' => 'BRA', 'nombre' => 'Amazonia Brasil'],
+                ['codigo' => 'BRB', 'nombre' => 'Paulista Air'],
+                ['codigo' => 'BRC', 'nombre' => 'Costa Brasil Wings'],
+                ['codigo' => 'BRD', 'nombre' => 'Verde Azul Airlines'],
+            ],
+            'Colombia' => [
+                ['codigo' => 'COA', 'nombre' => 'Sabana Air'],
+                ['codigo' => 'COB', 'nombre' => 'Caribe Colombia'],
+                ['codigo' => 'COC', 'nombre' => 'Andina Connect'],
+                ['codigo' => 'COD', 'nombre' => 'Nevado Jet'],
+            ],
+            'Mexico' => [
+                ['codigo' => 'MXA', 'nombre' => 'Maya Air'],
+                ['codigo' => 'MXB', 'nombre' => 'Azteca Connect'],
+                ['codigo' => 'MXC', 'nombre' => 'Pacifico Mex'],
+                ['codigo' => 'MXD', 'nombre' => 'Norte Mexico Lines'],
+            ],
+            'Estados Unidos' => [
+                ['codigo' => 'USA', 'nombre' => 'Liberty States Air'],
+                ['codigo' => 'USB', 'nombre' => 'Atlantic Union'],
+                ['codigo' => 'USC', 'nombre' => 'Coastline America'],
+                ['codigo' => 'USD', 'nombre' => 'Skyline Domestic'],
+            ],
+            'Espana' => [
+                ['codigo' => 'ESA', 'nombre' => 'Hispania Air'],
+                ['codigo' => 'ESB', 'nombre' => 'Costa Iberica'],
+                ['codigo' => 'ESC', 'nombre' => 'Meseta Connect'],
+                ['codigo' => 'ESD', 'nombre' => 'Sol Europa'],
+            ],
+            'Francia' => [
+                ['codigo' => 'FRA', 'nombre' => 'Hexagone Air'],
+                ['codigo' => 'FRB', 'nombre' => 'Bleu Horizon'],
+                ['codigo' => 'FRC', 'nombre' => 'Aero Seine'],
+                ['codigo' => 'FRD', 'nombre' => 'Riviera France'],
+            ],
+            'Reino Unido' => [
+                ['codigo' => 'UKA', 'nombre' => 'Crown Air UK'],
+                ['codigo' => 'UKB', 'nombre' => 'Albion Connect'],
+                ['codigo' => 'UKC', 'nombre' => 'NorthBridge Airways'],
+                ['codigo' => 'UKD', 'nombre' => 'Thames Jet'],
+            ],
+            'Marruecos' => [
+                ['codigo' => 'MRA', 'nombre' => 'Atlas Maroc'],
+                ['codigo' => 'MRB', 'nombre' => 'Maghreb Air'],
+                ['codigo' => 'MRC', 'nombre' => 'Sahara Connect'],
+                ['codigo' => 'MRD', 'nombre' => 'Casablanca Wings'],
+            ],
+            'Egipto' => [
+                ['codigo' => 'EGA', 'nombre' => 'Nile Sky'],
+                ['codigo' => 'EGB', 'nombre' => 'Pharaoh Air'],
+                ['codigo' => 'EGC', 'nombre' => 'Delta Egypt'],
+                ['codigo' => 'EGD', 'nombre' => 'Sphinx Airways'],
+            ],
+            'Sudafrica' => [
+                ['codigo' => 'NVA', 'nombre' => 'Nova Atlantic'],
+                ['codigo' => 'SZA', 'nombre' => 'CapeConnect'],
+                ['codigo' => 'SZB', 'nombre' => 'Safari Jet'],
+                ['codigo' => 'SZC', 'nombre' => 'Ubuntu Air'],
+            ],
+            'Kenia' => [
+                ['codigo' => 'KEA', 'nombre' => 'Savanna Air'],
+                ['codigo' => 'KEB', 'nombre' => 'Rift Valley Connect'],
+                ['codigo' => 'KEC', 'nombre' => 'Nairobi Wings'],
+                ['codigo' => 'KED', 'nombre' => 'Equator Jet'],
+            ],
+        ];
+
+        $dialCodes = [
+            'Bolivia' => '+591',
+            'Peru' => '+51',
+            'Chile' => '+56',
+            'Argentina' => '+54',
+            'Brasil' => '+55',
+            'Colombia' => '+57',
+            'Mexico' => '+52',
+            'Estados Unidos' => '+1',
+            'Espana' => '+34',
+            'Francia' => '+33',
+            'Reino Unido' => '+44',
+            'Marruecos' => '+212',
+            'Egipto' => '+20',
+            'Sudafrica' => '+27',
+            'Kenia' => '+254',
+        ];
+
+        $rows = [];
+
+        foreach ($countryCatalog as $country => $airlines) {
+            foreach ($airlines as $index => $airline) {
+                $rows[] = [
+                    'nombre' => $airline['nombre'],
+                    'codigo_iata' => $airline['codigo'],
+                    'pais' => $country,
+                    'telefono' => sprintf('%s %d %06d', $dialCodes[$country], 2 + ($index % 7), 220000 + ($index * 731)),
+                    'email' => 'ops.' . strtolower($airline['codigo']) . '@demoaero.test',
+                    'activa' => true,
+                ];
+            }
+        }
+
+        return $rows;
+    }
+
+    private function aircraftDefinitions(array $airlineDefinitions): array
+    {
+        $baseDefinitions = [
             ['aerolinea' => 'ALB', 'matricula' => 'CP-3201', 'modelo' => 'A320-200', 'fabricante' => 'Airbus', 'capacidad' => 180, 'alcance_km' => 6100, 'estado' => 'activo', 'dias_mantenimiento' => 12],
             ['aerolinea' => 'ALB', 'matricula' => 'CP-7378', 'modelo' => '737-800', 'fabricante' => 'Boeing', 'capacidad' => 162, 'alcance_km' => 5400, 'estado' => 'activo', 'dias_mantenimiento' => 30],
             ['aerolinea' => 'ALB', 'matricula' => 'CP-2205', 'modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200, 'estado' => 'activo', 'dias_mantenimiento' => 18],
@@ -391,6 +491,40 @@ class DatosDemoSeeder extends Seeder
             ['aerolinea' => 'NVA', 'matricula' => 'ZS-3214', 'modelo' => 'A321XLR', 'fabricante' => 'Airbus', 'capacidad' => 206, 'alcance_km' => 8700, 'estado' => 'activo', 'dias_mantenimiento' => 17],
             ['aerolinea' => 'NVA', 'matricula' => 'ZS-7874', 'modelo' => '787-9', 'fabricante' => 'Boeing', 'capacidad' => 290, 'alcance_km' => 14140, 'estado' => 'fuera_servicio', 'dias_mantenimiento' => 42],
         ];
+
+        $existingAirlineCodes = array_column($baseDefinitions, 'aerolinea');
+        $templates = [
+            ['modelo' => 'A320neo', 'fabricante' => 'Airbus', 'capacidad' => 186, 'alcance_km' => 6300],
+            ['modelo' => '737-800', 'fabricante' => 'Boeing', 'capacidad' => 174, 'alcance_km' => 5400],
+            ['modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200],
+            ['modelo' => 'E190-E2', 'fabricante' => 'Embraer', 'capacidad' => 114, 'alcance_km' => 5278],
+        ];
+
+        $generatedDefinitions = [];
+        $generatedIndex = 1;
+
+        foreach ($airlineDefinitions as $definition) {
+            if (in_array($definition['codigo_iata'], $existingAirlineCodes, true)) {
+                continue;
+            }
+
+            $template = $templates[($generatedIndex - 1) % count($templates)];
+
+            $generatedDefinitions[] = [
+                'aerolinea' => $definition['codigo_iata'],
+                'matricula' => $definition['codigo_iata'] . '-' . str_pad((string) (100 + $generatedIndex), 3, '0', STR_PAD_LEFT),
+                'modelo' => $template['modelo'],
+                'fabricante' => $template['fabricante'],
+                'capacidad' => $template['capacidad'],
+                'alcance_km' => $template['alcance_km'],
+                'estado' => 'activo',
+                'dias_mantenimiento' => 6 + ($generatedIndex % 20),
+            ];
+
+            $generatedIndex++;
+        }
+
+        return array_merge($baseDefinitions, $generatedDefinitions);
     }
 
     private function routeDefinitions(): array

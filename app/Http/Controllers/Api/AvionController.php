@@ -14,7 +14,7 @@ class AvionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Avion::query()->with('aerolinea:id,nombre,codigo_iata')->withCount('vuelos');
+        $query = Avion::query()->with('aerolinea:id,nombre,codigo_iata,pais')->withCount('vuelos');
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -31,6 +31,12 @@ class AvionController extends Controller
             $query->where('aerolinea_id', $request->input('aerolinea_id'));
         }
 
+        if ($request->filled('pais')) {
+            $query->whereHas('aerolinea', function ($relation) use ($request) {
+                $relation->where('pais', $request->input('pais'));
+            });
+        }
+
         if ($request->filled('estado')) {
             $query->where('estado', $request->input('estado'));
         }
@@ -44,7 +50,7 @@ class AvionController extends Controller
     {
         return response()->json([
             'data' => $avion->load([
-                'aerolinea:id,nombre,codigo_iata',
+                'aerolinea:id,nombre,codigo_iata,pais',
                 'vuelos' => fn ($query) => $query
                     ->with('estadoVuelo:id,nombre,color')
                     ->orderByDesc('fecha_salida')
@@ -72,7 +78,7 @@ class AvionController extends Controller
 
         return response()->json([
             'message' => 'Avion registrado correctamente.',
-            'data' => $avion->load('aerolinea:id,nombre,codigo_iata'),
+            'data' => $avion->load('aerolinea:id,nombre,codigo_iata,pais'),
         ], 201);
     }
 
@@ -100,7 +106,7 @@ class AvionController extends Controller
 
         return response()->json([
             'message' => 'Avion actualizado correctamente.',
-            'data' => $avion->load('aerolinea:id,nombre,codigo_iata'),
+            'data' => $avion->load('aerolinea:id,nombre,codigo_iata,pais'),
         ]);
     }
 

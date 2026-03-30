@@ -1,14 +1,30 @@
 import ResourceManager from '../components/modules/ResourceManager';
 import StatusBadge from '../components/common/StatusBadge';
 
+function countryOptions(airports = []) {
+    return Array.from(new Set((airports ?? []).map((airport) => airport.pais).filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right))
+        .map((country) => ({
+            value: country,
+            label: country,
+        }));
+}
+
 export default function AerolineasPage() {
     return (
         <ResourceManager
             title="Gestion de aerolineas"
-            description="Controla operadores, codigos IATA y estado general de las empresas registradas."
+            description="Controla operadores, codigos IATA y su organizacion por pais para mantener el catalogo comercial ordenado."
             endpoint="aerolineas"
+            catalogKeys={['aeropuertos']}
             searchPlaceholder="Buscar por nombre, pais o codigo"
             filters={[
+                {
+                    name: 'pais',
+                    label: 'Pais',
+                    type: 'select',
+                    options: (catalogs) => countryOptions(catalogs.aeropuertos),
+                },
                 {
                     name: 'activa',
                     label: 'Estado',
@@ -60,6 +76,9 @@ export default function AerolineasPage() {
                 {
                     name: 'pais',
                     label: 'Pais',
+                    type: 'select',
+                    options: (catalogs) => countryOptions(catalogs.aeropuertos),
+                    placeholder: 'Seleccione un pais',
                 },
                 {
                     name: 'telefono',

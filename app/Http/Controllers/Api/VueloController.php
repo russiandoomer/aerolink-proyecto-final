@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Aerolinea;
 use App\Models\Avion;
 use App\Models\Ruta;
 use App\Models\Vuelo;
@@ -17,7 +18,7 @@ class VueloController extends Controller
     {
         $query = Vuelo::query()
             ->with([
-                'aerolinea:id,nombre,codigo_iata',
+                'aerolinea:id,nombre,codigo_iata,pais',
                 'avion:id,matricula,modelo',
                 'estadoVuelo:id,nombre,color,codigo',
                 'ruta:id,codigo,tipo_operacion,frecuencia_referencial,distancia_km,aeropuerto_origen_id,aeropuerto_destino_id',
@@ -52,6 +53,12 @@ class VueloController extends Controller
             }
         }
 
+        if ($request->filled('pais_aerolinea')) {
+            $query->whereHas('aerolinea', function ($relation) use ($request) {
+                $relation->where('pais', $request->input('pais_aerolinea'));
+            });
+        }
+
         if ($request->filled('fecha_salida')) {
             $query->whereDate('fecha_salida', $request->input('fecha_salida'));
         }
@@ -65,7 +72,7 @@ class VueloController extends Controller
     {
         return response()->json([
             'data' => $vuelo->load([
-                'aerolinea:id,nombre,codigo_iata',
+                'aerolinea:id,nombre,codigo_iata,pais',
                 'avion:id,matricula,modelo,fabricante,capacidad',
                 'estadoVuelo:id,nombre,color,codigo,descripcion',
                 'ruta:id,codigo,distancia_km,duracion_minutos,tarifa_base,tipo_operacion,frecuencia_referencial,aeropuerto_origen_id,aeropuerto_destino_id',
@@ -162,8 +169,12 @@ class VueloController extends Controller
 
         $datos['codigo_vuelo'] = strtoupper($datos['codigo_vuelo']);
 
+        $aerolinea = Aerolinea::findOrFail($datos['aerolinea_id']);
         $avion = Avion::findOrFail($datos['avion_id']);
-        $ruta = Ruta::findOrFail($datos['ruta_id']);
+        $ruta = Ruta::with([
+            'aeropuertoOrigen:id,pais',
+            'aeropuertoDestino:id,pais',
+        ])->findOrFail($datos['ruta_id']);
 
         if ((int) $avion->aerolinea_id !== (int) $datos['aerolinea_id']) {
             throw ValidationException::withMessages([
@@ -195,14 +206,15 @@ class VueloController extends Controller
             ]);
         }
 
-        $airlineRouteExists = Vuelo::query()
-            ->where('aerolinea_id', $datos['aerolinea_id'])
-            ->where('ruta_id', $datos['ruta_id'])
-            ->exists();
-
-        if ($ruta->tipo_operacion === 'nacional' && ! $airlineRouteExists) {
+        if (
+            $ruta->tipo_operacion === 'nacional'
+            && (
+                $ruta->aeropuertoOrigen?->pais !== $aerolinea->pais
+                || $ruta->aeropuertoDestino?->pais !== $aerolinea->pais
+            )
+        ) {
             throw ValidationException::withMessages([
-                'ruta_id' => 'La ruta nacional seleccionada no forma parte de la red programada actual de la aerolinea. Para abrir un nuevo trayecto use una ruta adicional o internacional.',
+                'ruta_id' => 'Las rutas nacionales solo pueden programarse con aerolineas del mismo pais de origen y destino.',
             ]);
         }
 
@@ -212,7 +224,7 @@ class VueloController extends Controller
     private function cargarVuelo(Vuelo $vuelo): Vuelo
     {
         return $vuelo->load([
-            'aerolinea:id,nombre,codigo_iata',
+            'aerolinea:id,nombre,codigo_iata,pais',
             'avion:id,matricula,modelo,capacidad',
             'estadoVuelo:id,nombre,color,codigo',
             'ruta:id,codigo,tipo_operacion,frecuencia_referencial,distancia_km,aeropuerto_origen_id,aeropuerto_destino_id',

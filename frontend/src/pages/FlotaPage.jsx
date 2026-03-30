@@ -7,15 +7,39 @@ const fleetStateTones = {
     fuera_servicio: 'red',
 };
 
+function airlineCountryOptions(airlines = []) {
+    return Array.from(new Set((airlines ?? []).map((item) => item.pais).filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right))
+        .map((country) => ({
+            value: country,
+            label: country,
+        }));
+}
+
+function airlineOptionsByCountry(airlines = [], country = '') {
+    return (airlines ?? [])
+        .filter((item) => !country || item.pais === country)
+        .map((item) => ({
+            value: String(item.id),
+            label: `${item.nombre} | ${item.codigo_iata ?? '---'}`,
+        }));
+}
+
 export default function FlotaPage() {
     return (
         <ResourceManager
             title="Gestion de flota"
-            description="Registra aeronaves, capacidad, fabricante y estado operativo de la flota."
+            description="Registra aeronaves filtrando primero por el pais de la aerolinea para mantener la flota mejor organizada."
             endpoint="aviones"
             catalogKeys={['aerolineas']}
             searchPlaceholder="Buscar por matricula, modelo o fabricante"
             filters={[
+                {
+                    name: 'pais',
+                    label: 'Pais',
+                    type: 'select',
+                    options: (catalogs) => airlineCountryOptions(catalogs.aerolineas),
+                },
                 {
                     name: 'aerolinea_id',
                     label: 'Aerolinea',
@@ -23,7 +47,7 @@ export default function FlotaPage() {
                     options: (catalogs) =>
                         (catalogs.aerolineas ?? []).map((item) => ({
                             value: String(item.id),
-                            label: item.nombre,
+                            label: `${item.pais} | ${item.nombre}`,
                         })),
                 },
                 {
@@ -67,14 +91,21 @@ export default function FlotaPage() {
             ]}
             fields={[
                 {
+                    name: 'pais_aerolinea',
+                    label: 'Pais de la aerolinea',
+                    type: 'select',
+                    options: (catalogs) => airlineCountryOptions(catalogs.aerolineas),
+                    placeholder: 'Seleccione un pais',
+                    onChange: () => ({
+                        aerolinea_id: '',
+                    }),
+                },
+                {
                     name: 'aerolinea_id',
                     label: 'Aerolinea',
                     type: 'select',
-                    options: (catalogs) =>
-                        (catalogs.aerolineas ?? []).map((item) => ({
-                            value: String(item.id),
-                            label: item.nombre,
-                        })),
+                    options: (catalogs, formData) =>
+                        airlineOptionsByCountry(catalogs.aerolineas, formData.pais_aerolinea),
                 },
                 {
                     name: 'matricula',
@@ -118,9 +149,11 @@ export default function FlotaPage() {
                 },
             ]}
             initialValues={{
+                pais_aerolinea: 'Bolivia',
                 estado: 'activo',
             }}
             transformFormData={(item) => ({
+                pais_aerolinea: item.aerolinea?.pais ?? '',
                 aerolinea_id: String(item.aerolinea_id ?? ''),
                 matricula: item.matricula ?? '',
                 modelo: item.modelo ?? '',

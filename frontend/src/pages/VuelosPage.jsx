@@ -10,6 +10,30 @@ import {
 
 const FLEXIBLE_ROUTE_TYPES = new Set(['internacional', 'adicional']);
 
+function airlineCountryOptions(airlines = []) {
+    return Array.from(new Set((airlines ?? []).map((item) => item.pais).filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right))
+        .map((country) => ({
+            value: country,
+            label: country,
+        }));
+}
+
+function airlineOptionsByCountry(airlines = [], country = '') {
+    return (airlines ?? [])
+        .filter((item) => !country || item.pais === country)
+        .map((item) => ({
+            value: String(item.id),
+            label: `${item.nombre} | ${item.codigo_iata ?? '---'}`,
+        }));
+}
+
+function resolveAirlineCountry(airlines = [], airlineId = '') {
+    const match = airlines.find((item) => String(item.id) === String(airlineId));
+
+    return match?.pais ?? '';
+}
+
 function airlineAircraftOptions(aircraft = [], selectedAirlineId = '', selectedAircraftId = '') {
     return aircraft
         .filter((item) => {
@@ -25,7 +49,12 @@ function airlineAircraftOptions(aircraft = [], selectedAirlineId = '', selectedA
         }));
 }
 
-function routeIsAvailableForAirline(route, flights = [], selectedAirlineId = '', selectedRouteId = '') {
+function routeIsAvailableForAirline(
+    route,
+    airlines = [],
+    selectedAirlineId = '',
+    selectedRouteId = ''
+) {
     if (!selectedAirlineId) {
         return true;
     }
@@ -38,17 +67,17 @@ function routeIsAvailableForAirline(route, flights = [], selectedAirlineId = '',
         return true;
     }
 
-    return flights.some(
-        (flight) =>
-            String(flight.aerolinea_id) === String(selectedAirlineId)
-            && String(flight.ruta_id) === String(route.id)
-    );
+    const airlineCountry = resolveAirlineCountry(airlines, selectedAirlineId);
+    const originCountry = route?.aeropuerto_origen?.pais ?? route?.aeropuertoOrigen?.pais ?? '';
+    const destinationCountry = route?.aeropuerto_destino?.pais ?? route?.aeropuertoDestino?.pais ?? '';
+
+    return airlineCountry !== '' && airlineCountry === originCountry && airlineCountry === destinationCountry;
 }
 
-function buildRouteOptions(routes = [], flights = [], selectedAirlineId = '', selectedRouteId = '') {
+function buildRouteOptions(routes = [], airlines = [], selectedAirlineId = '', selectedRouteId = '') {
     return routes
         .filter((route) =>
-            routeIsAvailableForAirline(route, flights, selectedAirlineId, selectedRouteId)
+            routeIsAvailableForAirline(route, airlines, selectedAirlineId, selectedRouteId)
         )
         .map((route) => ({
             value: String(route.id),
@@ -75,11 +104,17 @@ export default function VuelosPage() {
     return (
         <ResourceManager
             title="Gestion de vuelos"
-            description="Programa vuelos sobre rutas ya operadas por la aerolinea o sobre rutas internacionales y adicionales habilitadas."
+            description="Programa vuelos eligiendo primero el pais de la aerolinea, luego la compania, su avion y una ruta compatible con su operacion."
             endpoint="vuelos"
-            catalogKeys={['aerolineas', 'aviones', 'rutas', 'estadosVuelo', 'vuelos']}
+            catalogKeys={['aerolineas', 'aviones', 'rutas', 'estadosVuelo']}
             searchPlaceholder="Buscar por codigo de vuelo, aerolinea o ruta"
             filters={[
+                {
+                    name: 'pais_aerolinea',
+                    label: 'Pais',
+                    type: 'select',
+                    options: (catalogs) => airlineCountryOptions(catalogs.aerolineas),
+                },
                 {
                     name: 'aerolinea_id',
                     label: 'Aerolinea',
@@ -87,7 +122,7 @@ export default function VuelosPage() {
                     options: (catalogs) =>
                         (catalogs.aerolineas ?? []).map((item) => ({
                             value: String(item.id),
-                            label: item.nombre,
+                            label: `${item.pais} | ${item.nombre}`,
                         })),
                 },
                 {
@@ -146,14 +181,24 @@ export default function VuelosPage() {
             ]}
             fields={[
                 {
+                    name: 'pais_aerolinea',
+                    label: 'Pais de la aerolinea',
+                    type: 'select',
+                    options: (catalogs) => airlineCountryOptions(catalogs.aerolineas),
+                    placeholder: 'Seleccione un pais',
+                    onChange: () => ({
+                        aerolinea_id: '',
+                        avion_id: '',
+                        ruta_id: '',
+                        capacidad: '',
+                    }),
+                },
+                {
                     name: 'aerolinea_id',
                     label: 'Aerolinea',
                     type: 'select',
-                    options: (catalogs) =>
-                        (catalogs.aerolineas ?? []).map((item) => ({
-                            value: String(item.id),
-                            label: item.nombre,
-                        })),
+                    options: (catalogs, formData) =>
+                        airlineOptionsByCountry(catalogs.aerolineas, formData.pais_aerolinea),
                     onChange: () => ({
                         avion_id: '',
                         ruta_id: '',
@@ -182,11 +227,11 @@ export default function VuelosPage() {
                     options: (catalogs, formData) =>
                         buildRouteOptions(
                             catalogs.rutas,
-                            catalogs.vuelos,
+                            catalogs.aerolineas,
                             formData.aerolinea_id,
                             formData.ruta_id
                         ),
-                    helpText: 'Las rutas nacionales se habilitan si la aerolinea ya las opera. Las internacionales y adicionales pueden programarse como nuevas.',
+                    helpText: 'Las rutas nacionales se habilitan para aerolineas del mismo pais. Las internacionales y adicionales pueden programarse para nuevas operaciones.',
                     onChange: (value, _nextState, catalogs) => ({
                         precio_base: resolveRouteBaseFare(catalogs.rutas, value),
                     }),
@@ -244,6 +289,7 @@ export default function VuelosPage() {
                 },
             ]}
             transformFormData={(item) => ({
+                pais_aerolinea: item.aerolinea?.pais ?? '',
                 aerolinea_id: String(item.aerolinea_id ?? ''),
                 avion_id: String(item.avion_id ?? ''),
                 ruta_id: String(item.ruta_id ?? ''),

@@ -29,6 +29,10 @@ class AerolineaController extends Controller
             $query->where('activa', $request->boolean('activa'));
         }
 
+        if ($request->filled('pais')) {
+            $query->where('pais', $request->input('pais'));
+        }
+
         return response()->json(
             $query->orderBy('nombre')->paginate($this->perPage($request))
         );
