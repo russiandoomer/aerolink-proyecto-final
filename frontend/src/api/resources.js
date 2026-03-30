@@ -56,8 +56,51 @@ export async function fetchDashboardSummary() {
     return response.data?.data ?? response.data;
 }
 
-export async function fetchAirportCatalog() {
-    const response = await http.get('/aeropuertos/catalogo');
+function normalizeAirportCatalogPayload(payload) {
+    const airports = Array.isArray(payload?.airports)
+        ? payload.airports
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
 
-    return response.data?.data ?? response.data;
+    const filteredAirports = airports.filter(
+        (airport) =>
+            airport &&
+            airport.latitud !== null &&
+            airport.latitud !== undefined &&
+            airport.longitud !== null &&
+            airport.longitud !== undefined
+    );
+
+    const countries = Array.isArray(payload?.countries)
+        ? payload.countries
+        : Array.from(
+              new Set(
+                  filteredAirports
+                      .map((airport) => airport.pais)
+                      .filter(Boolean)
+              )
+          ).sort((left, right) => left.localeCompare(right));
+
+    return {
+        countries,
+        airports: filteredAirports,
+    };
+}
+
+export async function fetchAirportCatalog() {
+    try {
+        const response = await http.get('/aeropuertos/catalogo');
+
+        return normalizeAirportCatalogPayload(response.data?.data ?? response.data);
+    } catch (catalogError) {
+        const response = await http.get('/aeropuertos', {
+            params: {
+                per_page: 100,
+                activo: true,
+            },
+        });
+
+        return normalizeAirportCatalogPayload(response.data);
+    }
 }
