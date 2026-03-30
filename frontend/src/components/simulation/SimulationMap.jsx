@@ -49,6 +49,32 @@ const CONTINENTS = [
     },
 ];
 
+const REGION_LABELS = [
+    { id: 'north-america', label: 'NORTEAMERICA', x: 190, y: 122 },
+    { id: 'south-america', label: 'SUDAMERICA', x: 304, y: 370 },
+    { id: 'europe', label: 'EUROPA', x: 590, y: 94 },
+    { id: 'africa', label: 'AFRICA', x: 620, y: 260 },
+    { id: 'asia', label: 'ASIA', x: 828, y: 146 },
+    { id: 'oceania', label: 'OCEANIA', x: 940, y: 420 },
+];
+
+const NETWORK_ARCS = [
+    { id: 'arc-1', start: { x: 150, y: 180 }, end: { x: 562, y: 148 }, lift: -64 },
+    { id: 'arc-2', start: { x: 305, y: 345 }, end: { x: 620, y: 266 }, lift: -58 },
+    { id: 'arc-3', start: { x: 640, y: 156 }, end: { x: 902, y: 182 }, lift: -52 },
+    { id: 'arc-4', start: { x: 648, y: 274 }, end: { x: 930, y: 422 }, lift: 48 },
+];
+
+const DECORATION_ORBS = [
+    { id: 'orb-1', cx: 168, cy: 94, r: 110, className: 'simulation-board__orb simulation-board__orb-primary' },
+    { id: 'orb-2', cx: 942, cy: 112, r: 130, className: 'simulation-board__orb simulation-board__orb-secondary' },
+    { id: 'orb-3', cx: 836, cy: 464, r: 150, className: 'simulation-board__orb simulation-board__orb-muted' },
+];
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
 function projectPoint(airport) {
     const longitude = Number(airport.longitud);
     const latitude = Number(airport.latitud);
@@ -105,10 +131,21 @@ function polygonPath(points) {
     return points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ') + ' Z';
 }
 
+function curvedPathFromPoints(start, end, lift) {
+    const midpointX = (start.x + end.x) / 2;
+    const midpointY = (start.y + end.y) / 2;
+
+    return `M ${start.x} ${start.y} Q ${midpointX} ${midpointY + lift} ${end.x} ${end.y}`;
+}
+
 export default function SimulationMap({
     originAirport,
     destinationAirport,
     progress,
+    routeDistance,
+    speedLabel,
+    phase,
+    progressPercent,
 }) {
     if (!originAirport || !destinationAirport) {
         return (
@@ -131,12 +168,28 @@ export default function SimulationMap({
     const completedRoutePath = completedSegments
         .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
         .join(' ');
+    const originLabelX = clamp(start.x + 16, 18, BOARD_WIDTH - 206);
+    const originLabelY = clamp(start.y - 56, 18, BOARD_HEIGHT - 62);
+    const destinationLabelX = clamp(end.x - 206, 18, BOARD_WIDTH - 206);
+    const destinationLabelY = clamp(end.y - 56, 18, BOARD_HEIGHT - 62);
+    const phaseLabel =
+        phase === 'running'
+            ? 'EN RUTA'
+            : phase === 'completed'
+              ? 'COMPLETADO'
+              : 'LISTO';
 
     return (
         <div className="simulation-board">
             <div className="simulation-board__meta">
-                <span>{originAirport.codigo_iata}</span>
-                <span>{destinationAirport.codigo_iata}</span>
+                <span>Origen · {originAirport.codigo_iata}</span>
+                <span>Destino · {destinationAirport.codigo_iata}</span>
+            </div>
+
+            <div className="simulation-board__status">
+                <span className={`simulation-board__status-badge is-${phase}`}>
+                    {phaseLabel}
+                </span>
             </div>
 
             <svg
@@ -159,6 +212,10 @@ export default function SimulationMap({
                         <stop offset="0%" stopColor="#38bdf8" />
                         <stop offset="100%" stopColor="#f8fafc" />
                     </linearGradient>
+                    <linearGradient id="simulationRouteHaloGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="rgba(14,165,233,0.08)" />
+                        <stop offset="100%" stopColor="rgba(248,250,252,0.12)" />
+                    </linearGradient>
                 </defs>
 
                 <rect
@@ -169,6 +226,10 @@ export default function SimulationMap({
                     rx="28"
                     className="simulation-board__background"
                 />
+
+                {DECORATION_ORBS.map((orb) => (
+                    <circle key={orb.id} cx={orb.cx} cy={orb.cy} r={orb.r} className={orb.className} />
+                ))}
 
                 {[0.2, 0.4, 0.6, 0.8].map((fraction) => (
                     <line
@@ -192,6 +253,14 @@ export default function SimulationMap({
                     />
                 ))}
 
+                {NETWORK_ARCS.map((arc) => (
+                    <path
+                        key={arc.id}
+                        d={curvedPathFromPoints(arc.start, arc.end, arc.lift)}
+                        className="simulation-board__network"
+                    />
+                ))}
+
                 {CONTINENTS.map((continent) => (
                     <path
                         key={continent.id}
@@ -199,6 +268,22 @@ export default function SimulationMap({
                         className="simulation-board__continent"
                     />
                 ))}
+
+                {REGION_LABELS.map((region) => (
+                    <text
+                        key={region.id}
+                        x={region.x}
+                        y={region.y}
+                        className="simulation-board__region-label"
+                    >
+                        {region.label}
+                    </text>
+                ))}
+
+                <path
+                    d={fullRoutePath}
+                    className="simulation-board__route-halo"
+                />
 
                 <path
                     d={fullRoutePath}
@@ -217,10 +302,22 @@ export default function SimulationMap({
                     className="simulation-board__marker simulation-board__marker-origin"
                 />
                 <circle
+                    cx={start.x}
+                    cy={start.y}
+                    r="18"
+                    className="simulation-board__pulse simulation-board__pulse-origin"
+                />
+                <circle
                     cx={end.x}
                     cy={end.y}
                     r="8"
                     className="simulation-board__marker simulation-board__marker-destination"
+                />
+                <circle
+                    cx={end.x}
+                    cy={end.y}
+                    r="18"
+                    className="simulation-board__pulse simulation-board__pulse-destination"
                 />
 
                 <circle
@@ -241,8 +338,9 @@ export default function SimulationMap({
                     </text>
                 </g>
 
-                <g transform={`translate(${Math.min(start.x + 18, BOARD_WIDTH - 208)} ${Math.max(start.y - 54, 18)})`}>
+                <g transform={`translate(${originLabelX} ${originLabelY})`}>
                     <rect width="190" height="46" rx="14" className="simulation-board__label" />
+                    <circle cx="16" cy="15" r="4" className="simulation-board__label-dot simulation-board__label-dot-origin" />
                     <text x="14" y="18" className="simulation-board__label-code">
                         {originAirport.codigo_iata}
                     </text>
@@ -251,8 +349,9 @@ export default function SimulationMap({
                     </text>
                 </g>
 
-                <g transform={`translate(${Math.max(end.x - 208, 18)} ${Math.max(end.y - 54, 18)})`}>
+                <g transform={`translate(${destinationLabelX} ${destinationLabelY})`}>
                     <rect width="190" height="46" rx="14" className="simulation-board__label" />
+                    <circle cx="16" cy="15" r="4" className="simulation-board__label-dot simulation-board__label-dot-destination" />
                     <text x="14" y="18" className="simulation-board__label-code">
                         {destinationAirport.codigo_iata}
                     </text>
@@ -261,6 +360,33 @@ export default function SimulationMap({
                     </text>
                 </g>
             </svg>
+
+            <div className="simulation-board__hud">
+                <div className="simulation-board__hud-copy">
+                    <span className="simulation-board__eyebrow">Global Route Monitor</span>
+                    <strong>
+                        {originAirport.ciudad}, {originAirport.pais} a {destinationAirport.ciudad}, {destinationAirport.pais}
+                    </strong>
+                    <small>
+                        Recorrido acelerado para demostracion academica. El trayecto se mantiene completo y visible durante toda la simulacion.
+                    </small>
+                </div>
+
+                <div className="simulation-board__hud-grid">
+                    <div className="simulation-board__hud-kpi">
+                        <span>Distancia</span>
+                        <strong>{routeDistance.toLocaleString()} km</strong>
+                    </div>
+                    <div className="simulation-board__hud-kpi">
+                        <span>Velocidad visual</span>
+                        <strong>{speedLabel}</strong>
+                    </div>
+                    <div className="simulation-board__hud-kpi">
+                        <span>Progreso</span>
+                        <strong>{progressPercent}%</strong>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

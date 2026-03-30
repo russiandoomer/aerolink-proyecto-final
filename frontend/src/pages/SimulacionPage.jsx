@@ -168,6 +168,7 @@ export default function SimulacionPage() {
         phase !== 'running';
 
     const displayProgress = phase === 'completed' ? 1 : easeInOutCubic(progress);
+    const progressPercent = Math.round(displayProgress * 100);
 
     useEffect(() => {
         if (!catalog) {
@@ -391,10 +392,10 @@ export default function SimulacionPage() {
                 </FadeInBlock>
 
                 <div className="panel-card simulation-map-panel">
-                    <div className="section-title">
+                        <div className="section-title">
                         <div>
                             <strong>Recorrido visual completo</strong>
-                            <small>El trayecto permanece completo en pantalla y el avion avanza en pocos segundos</small>
+                            <small>Vista global estilizada con ruta iluminada, progreso operativo y movimiento continuo del avion</small>
                         </div>
                     </div>
 
@@ -402,6 +403,10 @@ export default function SimulacionPage() {
                         originAirport={originAirport}
                         destinationAirport={destinationAirport}
                         progress={displayProgress}
+                        routeDistance={routeDistance}
+                        speedLabel={selectedSpeed.label}
+                        phase={phase}
+                        progressPercent={progressPercent}
                     />
                 </div>
             </div>
