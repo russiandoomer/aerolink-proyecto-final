@@ -86,6 +86,29 @@ function FitRouteBounds({ originPosition, destinationPosition }) {
     return null;
 }
 
+function EnsureMapReady() {
+    const map = useMap();
+
+    useEffect(() => {
+        const timers = [
+            setTimeout(() => map.invalidateSize(), 80),
+            setTimeout(() => map.invalidateSize(), 240),
+            setTimeout(() => map.invalidateSize(), 520),
+        ];
+
+        const onResize = () => map.invalidateSize();
+
+        window.addEventListener('resize', onResize);
+
+        return () => {
+            timers.forEach((timer) => clearTimeout(timer));
+            window.removeEventListener('resize', onResize);
+        };
+    }, [map]);
+
+    return null;
+}
+
 export default function SimulationMap({
     originAirport,
     destinationAirport,
@@ -126,6 +149,8 @@ export default function SimulationMap({
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+
+                <EnsureMapReady />
 
                 <FitRouteBounds
                     originPosition={originPosition}

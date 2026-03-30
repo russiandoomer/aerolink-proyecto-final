@@ -390,7 +390,7 @@ export default function SimulacionPage() {
                     </div>
                 </FadeInBlock>
 
-                <FadeInBlock className="panel-card simulation-map-panel" delay={0.12}>
+                <div className="panel-card simulation-map-panel">
                     <div className="section-title">
                         <div>
                             <strong>Recorrido visual completo</strong>
@@ -403,7 +403,7 @@ export default function SimulacionPage() {
                         destinationAirport={destinationAirport}
                         progress={displayProgress}
                     />
-                </FadeInBlock>
+                </div>
             </div>
         </section>
     );
