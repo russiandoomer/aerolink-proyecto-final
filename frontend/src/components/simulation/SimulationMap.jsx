@@ -1,27 +1,89 @@
-const BOARD_WIDTH = 1000;
-const BOARD_HEIGHT = 520;
+import { useEffect, useMemo } from 'react';
+import L from 'leaflet';
+import {
+    MapContainer,
+    Marker,
+    Polyline,
+    TileLayer,
+    Tooltip,
+    useMap,
+} from 'react-leaflet';
 
-function projectPoint(airport) {
-    const longitude = Number(airport.longitud);
-    const latitude = Number(airport.latitud);
-
-    return {
-        x: ((longitude + 180) / 360) * BOARD_WIDTH,
-        y: ((90 - latitude) / 180) * BOARD_HEIGHT,
-    };
+function getPosition(airport) {
+    return [Number(airport.latitud), Number(airport.longitud)];
 }
 
-function interpolatePoint(start, end, progress) {
-    return {
-        x: start.x + (end.x - start.x) * progress,
-        y: start.y + (end.y - start.y) * progress,
-    };
+function interpolatePosition(originAirport, destinationAirport, progress) {
+    const originLat = Number(originAirport.latitud);
+    const originLng = Number(originAirport.longitud);
+    const destinationLat = Number(destinationAirport.latitud);
+    const destinationLng = Number(destinationAirport.longitud);
+
+    return [
+        originLat + (destinationLat - originLat) * progress,
+        originLng + (destinationLng - originLng) * progress,
+    ];
 }
 
-function calculateAngle(start, end) {
+function calculateAngle(originAirport, destinationAirport) {
+    const originLat = Number(originAirport.latitud);
+    const originLng = Number(originAirport.longitud);
+    const destinationLat = Number(destinationAirport.latitud);
+    const destinationLng = Number(destinationAirport.longitud);
+
     return (
-        (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI
+        (Math.atan2(destinationLat - originLat, destinationLng - originLng) * 180) / Math.PI
     );
+}
+
+function buildAirportIcon(type, code) {
+    return L.divIcon({
+        className: 'simulation-div-icon',
+        html: `
+            <div class="simulation-marker simulation-marker--${type}">
+                <span class="simulation-marker__dot"></span>
+                <span class="simulation-marker__code">${code}</span>
+            </div>
+        `,
+        iconSize: [84, 30],
+        iconAnchor: type === 'origin' ? [14, 15] : [70, 15],
+    });
+}
+
+function buildPlaneIcon(angle) {
+    return L.divIcon({
+        className: 'simulation-div-icon',
+        html: `
+            <div class="simulation-plane-marker">
+                <div class="simulation-plane-marker__glow"></div>
+                <div class="simulation-plane-marker__body" style="transform: rotate(${angle}deg);">
+                    <span class="simulation-plane-marker__icon">✈</span>
+                </div>
+            </div>
+        `,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21],
+    });
+}
+
+function FitRouteBounds({ originPosition, destinationPosition }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (!originPosition || !destinationPosition) {
+            return;
+        }
+
+        const bounds = L.latLngBounds([originPosition, destinationPosition]);
+
+        map.fitBounds(bounds.pad(0.45), {
+            animate: true,
+            duration: 1.1,
+            padding: [32, 32],
+        });
+    }, [map, originPosition, destinationPosition]);
+
+    return null;
 }
 
 export default function SimulationMap({
@@ -37,12 +99,22 @@ export default function SimulationMap({
         );
     }
 
-    const start = projectPoint(originAirport);
-    const end = projectPoint(destinationAirport);
-    const current = interpolatePoint(start, end, progress);
-    const angle = calculateAngle(start, end);
-    const meridians = [-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150];
-    const parallels = [-60, -30, 0, 30, 60];
+    const originPosition = getPosition(originAirport);
+    const destinationPosition = getPosition(destinationAirport);
+    const planePosition = interpolatePosition(originAirport, destinationAirport, progress);
+    const planeAngle = calculateAngle(originAirport, destinationAirport);
+
+    const originIcon = useMemo(
+        () => buildAirportIcon('origin', originAirport.codigo_iata),
+        [originAirport.codigo_iata]
+    );
+
+    const destinationIcon = useMemo(
+        () => buildAirportIcon('destination', destinationAirport.codigo_iata),
+        [destinationAirport.codigo_iata]
+    );
+
+    const planeIcon = useMemo(() => buildPlaneIcon(planeAngle), [planeAngle]);
 
     return (
         <div className="simulation-board">
@@ -51,129 +123,60 @@ export default function SimulationMap({
                 <span>{destinationAirport.codigo_iata}</span>
             </div>
 
-            <svg
-                className="simulation-board__svg"
-                viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
-                role="img"
-                aria-label={`Recorrido entre ${originAirport.codigo_iata} y ${destinationAirport.codigo_iata}`}
+            <MapContainer
+                className="simulation-board__map"
+                center={originPosition}
+                zoom={4}
+                scrollWheelZoom={true}
+                zoomControl={true}
             >
-                <defs>
-                    <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#0ea5e9" />
-                        <stop offset="100%" stopColor="#22c55e" />
-                    </linearGradient>
-                    <linearGradient id="completedRouteGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#38bdf8" />
-                        <stop offset="100%" stopColor="#f8fafc" />
-                    </linearGradient>
-                </defs>
-
-                <rect
-                    x="0"
-                    y="0"
-                    width={BOARD_WIDTH}
-                    height={BOARD_HEIGHT}
-                    rx="28"
-                    className="simulation-board__background"
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                {meridians.map((longitude) => {
-                    const x = ((longitude + 180) / 360) * BOARD_WIDTH;
-
-                    return (
-                        <line
-                            key={`meridian-${longitude}`}
-                            x1={x}
-                            x2={x}
-                            y1="0"
-                            y2={BOARD_HEIGHT}
-                            className="simulation-board__grid"
-                        />
-                    );
-                })}
-
-                {parallels.map((latitude) => {
-                    const y = ((90 - latitude) / 180) * BOARD_HEIGHT;
-
-                    return (
-                        <line
-                            key={`parallel-${latitude}`}
-                            x1="0"
-                            x2={BOARD_WIDTH}
-                            y1={y}
-                            y2={y}
-                            className="simulation-board__grid"
-                        />
-                    );
-                })}
-
-                <line
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
-                    className="simulation-board__route"
+                <FitRouteBounds
+                    originPosition={originPosition}
+                    destinationPosition={destinationPosition}
                 />
 
-                <line
-                    x1={start.x}
-                    y1={start.y}
-                    x2={current.x}
-                    y2={current.y}
-                    className="simulation-board__route simulation-board__route-completed"
+                <Polyline
+                    positions={[originPosition, destinationPosition]}
+                    pathOptions={{
+                        color: '#0ea5e9',
+                        weight: 4,
+                        opacity: 0.65,
+                        dashArray: '10 12',
+                    }}
                 />
 
-                <circle
-                    cx={start.x}
-                    cy={start.y}
-                    r="9"
-                    className="simulation-board__marker simulation-board__marker-origin"
-                />
-                <circle
-                    cx={end.x}
-                    cy={end.y}
-                    r="9"
-                    className="simulation-board__marker simulation-board__marker-destination"
+                <Polyline
+                    positions={[originPosition, planePosition]}
+                    pathOptions={{
+                        color: '#f8fafc',
+                        weight: 5,
+                        opacity: 0.92,
+                    }}
                 />
 
-                <circle
-                    cx={current.x}
-                    cy={current.y}
-                    r="13"
-                    className="simulation-board__marker simulation-board__marker-plane-glow"
-                />
+                <Marker position={originPosition} icon={originIcon}>
+                    <Tooltip direction="top" offset={[0, -14]} className="simulation-tooltip">
+                        {originAirport.nombre} · {originAirport.ciudad}, {originAirport.pais}
+                    </Tooltip>
+                </Marker>
 
-                <g transform={`translate(${current.x} ${current.y}) rotate(${angle})`}>
-                    <circle r="11" className="simulation-board__plane-core" />
-                    <text
-                        className="simulation-board__plane-icon"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                    >
-                        ✈
-                    </text>
-                </g>
+                <Marker position={destinationPosition} icon={destinationIcon}>
+                    <Tooltip direction="top" offset={[0, -14]} className="simulation-tooltip">
+                        {destinationAirport.nombre} · {destinationAirport.ciudad}, {destinationAirport.pais}
+                    </Tooltip>
+                </Marker>
 
-                <g transform={`translate(${start.x + 16} ${start.y - 16})`}>
-                    <rect width="190" height="48" rx="16" className="simulation-board__label" />
-                    <text x="16" y="20" className="simulation-board__label-code">
-                        {originAirport.codigo_iata}
-                    </text>
-                    <text x="16" y="35" className="simulation-board__label-city">
-                        {originAirport.ciudad}, {originAirport.pais}
-                    </text>
-                </g>
-
-                <g transform={`translate(${end.x - 206} ${end.y - 16})`}>
-                    <rect width="190" height="48" rx="16" className="simulation-board__label" />
-                    <text x="16" y="20" className="simulation-board__label-code">
-                        {destinationAirport.codigo_iata}
-                    </text>
-                    <text x="16" y="35" className="simulation-board__label-city">
-                        {destinationAirport.ciudad}, {destinationAirport.pais}
-                    </text>
-                </g>
-            </svg>
+                <Marker position={planePosition} icon={planeIcon}>
+                    <Tooltip direction="top" offset={[0, -10]} className="simulation-tooltip">
+                        Vuelo en ruta · {Math.round(progress * 100)}%
+                    </Tooltip>
+                </Marker>
+            </MapContainer>
         </div>
     );
 }
