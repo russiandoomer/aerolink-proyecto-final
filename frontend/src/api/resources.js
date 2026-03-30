@@ -58,8 +58,8 @@ export async function fetchDashboardSummary() {
 
 function normalizeSimulationFlights(items) {
     return items.filter((flight) => {
-        const origin = flight?.ruta?.aeropuertoOrigen;
-        const destination = flight?.ruta?.aeropuertoDestino;
+        const origin = flight?.ruta?.aeropuertoOrigen ?? flight?.ruta?.aeropuerto_origen;
+        const destination = flight?.ruta?.aeropuertoDestino ?? flight?.ruta?.aeropuerto_destino;
 
         return (
             origin &&
