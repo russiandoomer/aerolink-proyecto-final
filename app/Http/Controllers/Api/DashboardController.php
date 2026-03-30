@@ -47,6 +47,10 @@ class DashboardController extends Controller
             ->limit(6)
             ->get()
             ->map(function (Vuelo $vuelo) {
+                $ruta = $vuelo->ruta;
+                $origen = $ruta?->aeropuertoOrigen;
+                $destino = $ruta?->aeropuertoDestino;
+                $estado = $vuelo->estadoVuelo;
                 $porcentaje = $vuelo->capacidad > 0
                     ? round(($vuelo->reservas_activas_count / $vuelo->capacidad) * 100, 1)
                     : 0;
@@ -54,9 +58,9 @@ class DashboardController extends Controller
                 return [
                     'id' => $vuelo->id,
                     'codigo_vuelo' => $vuelo->codigo_vuelo,
-                    'ruta' => $vuelo->ruta->aeropuertoOrigen->codigo_iata . ' - ' . $vuelo->ruta->aeropuertoDestino->codigo_iata,
-                    'estado' => $vuelo->estadoVuelo->nombre,
-                    'color' => $vuelo->estadoVuelo->color,
+                    'ruta' => ($origen?->codigo_iata ?? 'N/D') . ' - ' . ($destino?->codigo_iata ?? 'N/D'),
+                    'estado' => $estado?->nombre ?? 'Sin estado',
+                    'color' => $estado?->color ?? 'slate',
                     'capacidad' => $vuelo->capacidad,
                     'reservas_activas' => $vuelo->reservas_activas_count,
                     'ocupacion_porcentaje' => $porcentaje,
@@ -73,13 +77,16 @@ class DashboardController extends Controller
             ->limit(5)
             ->get()
             ->map(function (Ruta $ruta) {
+                $origen = $ruta->aeropuertoOrigen;
+                $destino = $ruta->aeropuertoDestino;
+
                 return [
                     'id' => $ruta->id,
                     'codigo' => $ruta->codigo,
-                    'origen' => $ruta->aeropuertoOrigen->codigo_iata,
-                    'destino' => $ruta->aeropuertoDestino->codigo_iata,
-                    'ciudad_origen' => $ruta->aeropuertoOrigen->ciudad,
-                    'ciudad_destino' => $ruta->aeropuertoDestino->ciudad,
+                    'origen' => $origen?->codigo_iata ?? 'N/D',
+                    'destino' => $destino?->codigo_iata ?? 'N/D',
+                    'ciudad_origen' => $origen?->ciudad ?? 'Sin ciudad',
+                    'ciudad_destino' => $destino?->ciudad ?? 'Sin ciudad',
                     'total_vuelos' => $ruta->vuelos_count,
                 ];
             });
@@ -96,14 +103,19 @@ class DashboardController extends Controller
             ->limit(5)
             ->get()
             ->map(function (Vuelo $vuelo) {
+                $ruta = $vuelo->ruta;
+                $origen = $ruta?->aeropuertoOrigen;
+                $destino = $ruta?->aeropuertoDestino;
+                $estado = $vuelo->estadoVuelo;
+
                 return [
                     'id' => $vuelo->id,
                     'codigo_vuelo' => $vuelo->codigo_vuelo,
                     'fecha_salida' => $vuelo->fecha_salida,
-                    'origen' => $vuelo->ruta->aeropuertoOrigen->codigo_iata,
-                    'destino' => $vuelo->ruta->aeropuertoDestino->codigo_iata,
-                    'estado' => $vuelo->estadoVuelo->nombre,
-                    'color' => $vuelo->estadoVuelo->color,
+                    'origen' => $origen?->codigo_iata ?? 'N/D',
+                    'destino' => $destino?->codigo_iata ?? 'N/D',
+                    'estado' => $estado?->nombre ?? 'Sin estado',
+                    'color' => $estado?->color ?? 'slate',
                 ];
             });
 

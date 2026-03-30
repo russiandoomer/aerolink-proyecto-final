@@ -12,6 +12,8 @@ class Avion extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'aviones';
+
     protected $fillable = [
         'aerolinea_id',
         'matricula',
