@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import L from 'leaflet';
 import {
     MapContainer,
@@ -104,17 +104,9 @@ export default function SimulationMap({
     const planePosition = interpolatePosition(originAirport, destinationAirport, progress);
     const planeAngle = calculateAngle(originAirport, destinationAirport);
 
-    const originIcon = useMemo(
-        () => buildAirportIcon('origin', originAirport.codigo_iata),
-        [originAirport.codigo_iata]
-    );
-
-    const destinationIcon = useMemo(
-        () => buildAirportIcon('destination', destinationAirport.codigo_iata),
-        [destinationAirport.codigo_iata]
-    );
-
-    const planeIcon = useMemo(() => buildPlaneIcon(planeAngle), [planeAngle]);
+    const originIcon = buildAirportIcon('origin', originAirport.codigo_iata);
+    const destinationIcon = buildAirportIcon('destination', destinationAirport.codigo_iata);
+    const planeIcon = buildPlaneIcon(planeAngle);
 
     return (
         <div className="simulation-board">
