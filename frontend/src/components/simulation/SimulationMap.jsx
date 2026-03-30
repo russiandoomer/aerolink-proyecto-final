@@ -1,53 +1,45 @@
+import {
+    geoGraticule10,
+    geoInterpolate,
+    geoNaturalEarth1,
+    geoPath,
+} from 'd3-geo';
+import { feature } from 'topojson-client';
+import worldAtlas from 'world-atlas/countries-110m.json';
+
 const BOARD_WIDTH = 1120;
 const BOARD_HEIGHT = 560;
 
-const CONTINENTS = [
-    {
-        id: 'north-america',
-        points: [
-            [80, 110], [150, 75], [240, 95], [290, 130], [320, 175], [300, 220], [250, 250],
-            [215, 300], [190, 350], [150, 365], [122, 320], [102, 265], [82, 200],
-        ],
-    },
-    {
-        id: 'south-america',
-        points: [
-            [285, 300], [330, 320], [355, 365], [372, 430], [352, 505], [324, 540], [292, 520],
-            [275, 470], [262, 410], [258, 350],
-        ],
-    },
-    {
-        id: 'europe',
-        points: [
-            [540, 105], [590, 90], [640, 108], [658, 138], [640, 168], [598, 175], [555, 152],
-        ],
-    },
-    {
-        id: 'africa',
-        points: [
-            [572, 188], [625, 198], [668, 245], [682, 330], [662, 422], [625, 468], [590, 445],
-            [560, 380], [548, 302], [552, 230],
-        ],
-    },
-    {
-        id: 'asia',
-        points: [
-            [645, 120], [730, 90], [860, 105], [965, 155], [1018, 220], [992, 268], [920, 288],
-            [832, 272], [770, 252], [725, 212], [680, 188], [640, 155],
-        ],
-    },
-    {
-        id: 'australia',
-        points: [
-            [875, 398], [930, 388], [985, 408], [1018, 445], [1000, 490], [940, 505], [890, 488],
-            [858, 445],
-        ],
-    },
-    {
-        id: 'greenland',
-        points: [[285, 55], [330, 32], [392, 42], [410, 86], [370, 116], [316, 106]],
-    },
-];
+const projection = geoNaturalEarth1().fitExtent(
+    [
+        [26, 26],
+        [BOARD_WIDTH - 26, BOARD_HEIGHT - 128],
+    ],
+    { type: 'Sphere' }
+);
+
+const pathGenerator = geoPath(projection);
+const worldCountries = feature(worldAtlas, worldAtlas.objects.countries).features;
+const spherePath = pathGenerator({ type: 'Sphere' });
+const graticulePath = pathGenerator(geoGraticule10());
+
+const COUNTRY_NAME_MAP = {
+    Bolivia: 'Bolivia',
+    Peru: 'Peru',
+    Chile: 'Chile',
+    Argentina: 'Argentina',
+    Brasil: 'Brazil',
+    Colombia: 'Colombia',
+    Mexico: 'Mexico',
+    'Estados Unidos': 'United States of America',
+    Espana: 'Spain',
+    Francia: 'France',
+    'Reino Unido': 'United Kingdom',
+    Marruecos: 'Morocco',
+    Egipto: 'Egypt',
+    Sudafrica: 'South Africa',
+    Kenia: 'Kenya',
+};
 
 const COUNTRY_LABELS = [
     { id: 'bolivia', label: 'Bolivia', latitud: -16.7, longitud: -64.8 },
@@ -71,90 +63,64 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
-function projectPoint(airport) {
-    const longitude = Number(airport.longitud);
-    const latitude = Number(airport.latitud);
-
-    return {
-        x: ((longitude + 180) / 360) * BOARD_WIDTH,
-        y: ((90 - latitude) / 180) * BOARD_HEIGHT,
-    };
-}
-
 function projectCoordinate(latitud, longitud) {
-    return {
-        x: ((Number(longitud) + 180) / 360) * BOARD_WIDTH,
-        y: ((90 - Number(latitud)) / 180) * BOARD_HEIGHT,
-    };
-}
+    const point = projection([Number(longitud), Number(latitud)]);
 
-function createCurve(start, end) {
-    const midpointX = (start.x + end.x) / 2;
-    const midpointY = (start.y + end.y) / 2;
-    const deltaX = end.x - start.x;
-    const deltaY = end.y - start.y;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const normalizedX = distance === 0 ? 0 : deltaX / distance;
-    const normalizedY = distance === 0 ? 0 : deltaY / distance;
-    const perpendicularX = -normalizedY;
-    const perpendicularY = normalizedX;
-    const curveStrength = Math.min(Math.max(distance * 0.12, 26), 92);
-
-    return {
-        controlX: midpointX + perpendicularX * curveStrength,
-        controlY: midpointY + perpendicularY * curveStrength,
-    };
-}
-
-function bezierPoint(start, control, end, t) {
-    const oneMinusT = 1 - t;
-
-    return {
-        x:
-            oneMinusT * oneMinusT * start.x +
-            2 * oneMinusT * t * control.controlX +
-            t * t * end.x,
-        y:
-            oneMinusT * oneMinusT * start.y +
-            2 * oneMinusT * t * control.controlY +
-            t * t * end.y,
-    };
-}
-
-function bezierAngle(start, control, end, t) {
-    const tangentX =
-        2 * (1 - t) * (control.controlX - start.x) + 2 * t * (end.x - control.controlX);
-    const tangentY =
-        2 * (1 - t) * (control.controlY - start.y) + 2 * t * (end.y - control.controlY);
-
-    return (Math.atan2(tangentY, tangentX) * 180) / Math.PI;
-}
-
-function polygonPath(points) {
-    return points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ') + ' Z';
-}
-
-function smoothClosedPath(points) {
-    if (points.length < 3) {
-        return polygonPath(points);
+    if (!point) {
+        return { x: 0, y: 0 };
     }
 
-    const path = [];
+    return {
+        x: point[0],
+        y: point[1],
+    };
+}
 
-    for (let index = 0; index < points.length; index += 1) {
-        const current = points[index];
-        const next = points[(index + 1) % points.length];
-        const midpointX = (current[0] + next[0]) / 2;
-        const midpointY = (current[1] + next[1]) / 2;
+function buildPathFromPoints(points) {
+    return points
+        .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+        .join(' ');
+}
 
-        if (index === 0) {
-            path.push(`M ${midpointX} ${midpointY}`);
-        }
+function buildRoutePoints(originAirport, destinationAirport, segments = 68) {
+    const interpolate = geoInterpolate(
+        [Number(originAirport.longitud), Number(originAirport.latitud)],
+        [Number(destinationAirport.longitud), Number(destinationAirport.latitud)]
+    );
 
-        path.push(`Q ${current[0]} ${current[1]} ${midpointX} ${midpointY}`);
-    }
+    return Array.from({ length: segments }, (_, index) => {
+        const position = interpolate(index / (segments - 1));
 
-    return `${path.join(' ')} Z`;
+        return projectCoordinate(position[1], position[0]);
+    });
+}
+
+function resolveCountryLabel(country, originAirport, destinationAirport) {
+    const isSelected = country.label === originAirport.pais || country.label === destinationAirport.pais;
+
+    return {
+        ...country,
+        ...projectCoordinate(country.latitud, country.longitud),
+        isSelected,
+    };
+}
+
+function resolveHighlightedCountryNames(originAirport, destinationAirport) {
+    return new Set([
+        COUNTRY_NAME_MAP[originAirport.pais] ?? originAirport.pais,
+        COUNTRY_NAME_MAP[destinationAirport.pais] ?? destinationAirport.pais,
+    ]);
+}
+
+function resolveCountryPaths(highlightedCountries) {
+    return worldCountries
+        .map((country) => ({
+            id: country.id,
+            name: country.properties?.name ?? '',
+            d: pathGenerator(country),
+            highlighted: highlightedCountries.has(country.properties?.name ?? ''),
+        }))
+        .filter((country) => country.d);
 }
 
 export default function SimulationMap({
@@ -174,19 +140,25 @@ export default function SimulationMap({
         );
     }
 
-    const start = projectPoint(originAirport);
-    const end = projectPoint(destinationAirport);
-    const curve = createCurve(start, end);
-    const current = bezierPoint(start, curve, end, progress);
-    const angle = bezierAngle(start, curve, end, Math.max(progress, 0.02));
-    const fullRoutePath = `M ${start.x} ${start.y} Q ${curve.controlX} ${curve.controlY} ${end.x} ${end.y}`;
-    const completedSegments = Array.from({ length: 28 }, (_, index) => {
-        const segmentProgress = (progress * index) / 27;
-        return bezierPoint(start, curve, end, segmentProgress);
-    });
-    const completedRoutePath = completedSegments
-        .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-        .join(' ');
+    const highlightedCountries = resolveHighlightedCountryNames(originAirport, destinationAirport);
+    const countryPaths = resolveCountryPaths(highlightedCountries);
+    const countryLabels = COUNTRY_LABELS.map((country) =>
+        resolveCountryLabel(country, originAirport, destinationAirport)
+    );
+
+    const routePoints = buildRoutePoints(originAirport, destinationAirport);
+    const currentIndex = clamp(
+        Math.round(progress * (routePoints.length - 1)),
+        0,
+        routePoints.length - 1
+    );
+    const current = routePoints[currentIndex];
+    const previous = routePoints[Math.max(currentIndex - 1, 0)];
+    const start = routePoints[0];
+    const end = routePoints[routePoints.length - 1];
+    const angle = (Math.atan2(current.y - previous.y, current.x - previous.x) * 180) / Math.PI;
+    const fullRoutePath = buildPathFromPoints(routePoints);
+    const completedRoutePath = buildPathFromPoints(routePoints.slice(0, currentIndex + 1));
     const originLabelX = clamp(start.x + 16, 18, BOARD_WIDTH - 206);
     const originLabelY = clamp(start.y - 56, 18, BOARD_HEIGHT - 62);
     const destinationLabelX = clamp(end.x - 206, 18, BOARD_WIDTH - 206);
@@ -197,12 +169,6 @@ export default function SimulationMap({
             : phase === 'completed'
               ? 'COMPLETADO'
               : 'LISTO';
-    const countryLabels = COUNTRY_LABELS.map((country) => ({
-        ...country,
-        ...projectCoordinate(country.latitud, country.longitud),
-        isSelected:
-            country.label === originAirport.pais || country.label === destinationAirport.pais,
-    }));
 
     return (
         <div className="simulation-board">
@@ -225,17 +191,17 @@ export default function SimulationMap({
             >
                 <defs>
                     <linearGradient id="simulationOceanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#07111d" />
-                        <stop offset="55%" stopColor="#0b1d30" />
-                        <stop offset="100%" stopColor="#08111b" />
+                        <stop offset="0%" stopColor="#09121d" />
+                        <stop offset="55%" stopColor="#0d1a28" />
+                        <stop offset="100%" stopColor="#09121a" />
                     </linearGradient>
-                    <linearGradient id="simulationContinentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#c9d4dd" />
-                        <stop offset="100%" stopColor="#a5b4c1" />
+                    <linearGradient id="simulationLandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#d3dde5" />
+                        <stop offset="100%" stopColor="#aebdca" />
                     </linearGradient>
                     <linearGradient id="simulationRouteGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                         <stop offset="0%" stopColor="#67e8f9" />
-                        <stop offset="50%" stopColor="#38bdf8" />
+                        <stop offset="55%" stopColor="#38bdf8" />
                         <stop offset="100%" stopColor="#e2e8f0" />
                     </linearGradient>
                 </defs>
@@ -249,33 +215,18 @@ export default function SimulationMap({
                     className="simulation-board__background"
                 />
 
-                {[0.16, 0.33, 0.5, 0.67, 0.84].map((fraction) => (
-                    <line
-                        key={`vertical-${fraction}`}
-                        x1={BOARD_WIDTH * fraction}
-                        x2={BOARD_WIDTH * fraction}
-                        y1="0"
-                        y2={BOARD_HEIGHT}
-                        className="simulation-board__grid"
-                    />
-                ))}
+                <path d={spherePath} className="simulation-board__sphere" />
+                <path d={graticulePath} className="simulation-board__graticule" />
 
-                {[0.22, 0.5, 0.78].map((fraction) => (
-                    <line
-                        key={`horizontal-${fraction}`}
-                        x1="0"
-                        x2={BOARD_WIDTH}
-                        y1={BOARD_HEIGHT * fraction}
-                        y2={BOARD_HEIGHT * fraction}
-                        className="simulation-board__grid"
-                    />
-                ))}
-
-                {CONTINENTS.map((continent) => (
+                {countryPaths.map((country) => (
                     <path
-                        key={continent.id}
-                        d={smoothClosedPath(continent.points)}
-                        className="simulation-board__continent"
+                        key={country.id}
+                        d={country.d}
+                        className={
+                            country.highlighted
+                                ? 'simulation-board__country is-highlighted'
+                                : 'simulation-board__country'
+                        }
                     />
                 ))}
 
@@ -295,16 +246,8 @@ export default function SimulationMap({
                     </g>
                 ))}
 
-                <path
-                    d={fullRoutePath}
-                    className="simulation-board__route-halo"
-                />
-
-                <path
-                    d={fullRoutePath}
-                    className="simulation-board__route"
-                />
-
+                <path d={fullRoutePath} className="simulation-board__route-halo" />
+                <path d={fullRoutePath} className="simulation-board__route" />
                 <path
                     d={completedRoutePath}
                     className="simulation-board__route simulation-board__route-completed"
@@ -355,7 +298,12 @@ export default function SimulationMap({
 
                 <g transform={`translate(${originLabelX} ${originLabelY})`}>
                     <rect width="190" height="46" rx="14" className="simulation-board__label" />
-                    <circle cx="16" cy="15" r="4" className="simulation-board__label-dot simulation-board__label-dot-origin" />
+                    <circle
+                        cx="16"
+                        cy="15"
+                        r="4"
+                        className="simulation-board__label-dot simulation-board__label-dot-origin"
+                    />
                     <text x="14" y="18" className="simulation-board__label-code">
                         {originAirport.codigo_iata}
                     </text>
@@ -366,7 +314,12 @@ export default function SimulationMap({
 
                 <g transform={`translate(${destinationLabelX} ${destinationLabelY})`}>
                     <rect width="190" height="46" rx="14" className="simulation-board__label" />
-                    <circle cx="16" cy="15" r="4" className="simulation-board__label-dot simulation-board__label-dot-destination" />
+                    <circle
+                        cx="16"
+                        cy="15"
+                        r="4"
+                        className="simulation-board__label-dot simulation-board__label-dot-destination"
+                    />
                     <text x="14" y="18" className="simulation-board__label-code">
                         {destinationAirport.codigo_iata}
                     </text>
@@ -380,10 +333,12 @@ export default function SimulationMap({
                 <div className="simulation-board__hud-copy">
                     <span className="simulation-board__eyebrow">Global Route Monitor</span>
                     <strong>
-                        {originAirport.ciudad}, {originAirport.pais} a {destinationAirport.ciudad}, {destinationAirport.pais}
+                        {originAirport.ciudad}, {originAirport.pais} a {destinationAirport.ciudad},{' '}
+                        {destinationAirport.pais}
                     </strong>
                     <small>
-                        Simulacion acelerada de la ruta. El recorrido permanece visible y el avance se sigue en una sola pantalla.
+                        Simulacion acelerada de la ruta. El recorrido permanece visible y el avance
+                        se sigue en una sola pantalla.
                     </small>
                 </div>
 

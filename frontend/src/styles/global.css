@@ -1087,29 +1087,40 @@ a {
     fill: url(#simulationOceanGradient);
 }
 
-.simulation-board__grid {
-    stroke: rgba(148, 163, 184, 0.08);
-    stroke-width: 1;
+.simulation-board__sphere {
+    fill: rgba(148, 163, 184, 0.04);
 }
 
-.simulation-board__continent {
-    fill: url(#simulationContinentGradient);
-    fill-opacity: 0.28;
+.simulation-board__graticule {
+    fill: none;
+    stroke: rgba(148, 163, 184, 0.08);
+    stroke-width: 0.8;
+}
+
+.simulation-board__country {
+    fill: url(#simulationLandGradient);
+    fill-opacity: 0.26;
     stroke: rgba(226, 232, 240, 0.08);
-    stroke-width: 1.2;
+    stroke-width: 0.8;
+    vector-effect: non-scaling-stroke;
+}
+
+.simulation-board__country.is-highlighted {
+    fill-opacity: 0.45;
+    stroke: rgba(103, 232, 249, 0.42);
+    stroke-width: 1.4;
 }
 
 .simulation-board__country-label text {
-    fill: rgba(226, 232, 240, 0.34);
-    font-size: 11px;
+    fill: rgba(226, 232, 240, 0.42);
+    font-size: 10.5px;
     font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .simulation-board__country-label.is-selected text {
-    fill: rgba(248, 250, 252, 0.92);
-    font-size: 12px;
+    fill: rgba(248, 250, 252, 0.96);
+    font-size: 11.5px;
 }
 
 .simulation-board__route-halo {
