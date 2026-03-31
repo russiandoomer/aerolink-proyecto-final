@@ -1,6 +1,6 @@
 import { Bell, Menu, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { navigationItems } from '../data/navigation';
 
@@ -13,6 +13,10 @@ export default function DashboardLayout() {
             navigationItems.find((item) => item.to === location.pathname) ??
             navigationItems[0]
         );
+    }, [location.pathname]);
+
+    useEffect(() => {
+        setSidebarOpen(false);
     }, [location.pathname]);
 
     return (
