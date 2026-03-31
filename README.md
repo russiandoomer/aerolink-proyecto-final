@@ -41,7 +41,6 @@ tecnoweb2/
 ├── database/
 │   ├── migrations/         # Estructura de base de datos
 │   └── seeders/            # Datos demo para pruebas
-├── docs/                   # Entregas por fases del proyecto
 ├── frontend/               # Aplicacion React
 ├── resources/              # Recursos Blade heredados del proyecto base
 ├── routes/                 # Rutas web y API
@@ -192,7 +191,6 @@ Eso garantiza que otro integrante o docente pueda reconstruir el sistema sin dep
 - `.env.example`
 - `.gitignore`
 - `README.md`
-- `docs/`
 
 ## Archivos que no se suben a GitHub
 
@@ -225,42 +223,6 @@ Eso garantiza que otro integrante o docente pueda reconstruir el sistema sin dep
 - `POST /api/pasajeros`
 - `POST /api/reservas`
 - `PATCH /api/vuelos/{id}/estado`
-
-## Documentacion interna
-
-Las fases del proyecto quedaron documentadas en:
-
-- `docs/01-arquitectura-general.md`
-- `docs/02-base-de-datos.md`
-- `docs/03-backend-laravel.md`
-- `docs/04-frontend-react.md`
-- `docs/05-dashboard-y-experiencia-visual.md`
-- `docs/06-conexion-del-sistema.md`
-- `docs/07-github-y-base-de-datos-compartida.md`
-
-## Validacion realizada
-
-Durante esta sesion se verifico el proyecto en entorno local con:
-
-- PHP `8.3.26`
-- Node.js `24.12.0`
-- npm `11.6.2`
-- Git `2.47.1`
-
-Comprobaciones realizadas:
-
-- `php artisan migrate:fresh --seed`
-- `php artisan migrate:status`
-- `php artisan route:list --path=api`
-- `npm install` en `frontend/`
-- `npm run build` en `frontend/`
-- inicializacion del repositorio Git local y commit base
-
-Estado actual del repositorio:
-
-- rama principal: `main`
-- commit base: `feat: initialize AeroLink project`
-- remoto GitHub: pendiente de configurar
 
 ## Recomendacion para la presentacion
 
