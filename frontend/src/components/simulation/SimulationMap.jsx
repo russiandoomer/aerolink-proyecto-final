@@ -15,7 +15,7 @@ const VIEW_MODE = {
     FOCUSED: 'focused',
 };
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 5;
+const MAX_ZOOM = 12;
 
 const projection = geoNaturalEarth1().fitExtent(
     [
@@ -76,8 +76,8 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
-function estimateLabelWidth(label) {
-    return Math.max(42, label.length * 6.1);
+function resolveInfoDotX(label) {
+    return clamp(14 + label.length * 5.15 + 9, 118, 172);
 }
 
 function projectCoordinate(latitud, longitud) {
@@ -121,8 +121,6 @@ function resolveCountryLabel(country, originAirport, destinationAirport) {
         ...country,
         ...projectCoordinate(country.latitud, country.longitud),
         isSelected,
-        markerTone: isOrigin && isDestination ? 'both' : isOrigin ? 'origin' : isDestination ? 'destination' : null,
-        markerOffset: estimateLabelWidth(country.label) / 2 + 10,
     };
 }
 
@@ -146,50 +144,30 @@ function resolveCountryPaths(highlightedCountries) {
 
 function resolveDefaultZoomLevel(routeDistance) {
     if (routeDistance <= 250) {
-        return 5;
+        return 10;
     }
 
     if (routeDistance <= 700) {
-        return 4;
+        return 8;
     }
 
     if (routeDistance <= 1600) {
-        return 3;
+        return 6;
     }
 
     if (routeDistance <= 3200) {
-        return 2;
+        return 4;
     }
 
-    return 1;
+    return 2;
 }
 
 function resolveFocusedViewBox(targetPoints, zoomLevel) {
-    const paddingMap = {
-        1: 168,
-        2: 120,
-        3: 80,
-        4: 52,
-        5: 32,
-    };
-    const minWidthMap = {
-        1: 340,
-        2: 250,
-        3: 190,
-        4: 138,
-        5: 102,
-    };
-    const minHeightMap = {
-        1: 210,
-        2: 170,
-        3: 135,
-        4: 102,
-        5: 78,
-    };
+    const safeZoom = Math.max(1, zoomLevel);
     const aspectRatio = BOARD_WIDTH / BOARD_HEIGHT;
-    const padding = paddingMap[zoomLevel] ?? paddingMap[1];
-    const minWidth = minWidthMap[zoomLevel] ?? minWidthMap[1];
-    const minHeight = minHeightMap[zoomLevel] ?? minHeightMap[1];
+    const padding = Math.max(10, 170 / safeZoom);
+    const minWidth = Math.max(36, 420 / safeZoom);
+    const minHeight = Math.max(26, 250 / safeZoom);
     const xs = targetPoints.map((point) => point.x);
     const ys = targetPoints.map((point) => point.y);
     const rawWidth = Math.max(...xs) - Math.min(...xs);
@@ -291,6 +269,10 @@ export default function SimulationMap({
     const originLabelY = clamp(start.y - 56, 18, BOARD_HEIGHT - 62);
     const destinationLabelX = clamp(end.x - 206, 18, BOARD_WIDTH - 206);
     const destinationLabelY = clamp(end.y - 56, 18, BOARD_HEIGHT - 62);
+    const originInfoLine = `${originAirport.ciudad}, ${originAirport.pais}`;
+    const destinationInfoLine = `${destinationAirport.ciudad}, ${destinationAirport.pais}`;
+    const originInfoDotX = resolveInfoDotX(originInfoLine);
+    const destinationInfoDotX = resolveInfoDotX(destinationInfoLine);
     const phaseLabel =
         phase === 'running'
             ? 'EN RUTA'
@@ -298,13 +280,7 @@ export default function SimulationMap({
               ? 'COMPLETADO'
               : 'LISTO';
 
-    const focusedTargets = [
-        ...routePoints,
-        { x: originLabelX, y: originLabelY },
-        { x: originLabelX + 190, y: originLabelY + 46 },
-        { x: destinationLabelX, y: destinationLabelY },
-        { x: destinationLabelX + 190, y: destinationLabelY + 46 },
-    ];
+    const focusedTargets = routePoints;
 
     const activeViewBox =
         viewMode === VIEW_MODE.FOCUSED
@@ -317,59 +293,60 @@ export default function SimulationMap({
             : countryLabels;
 
     return (
-        <div className="simulation-board">
-            <div className="simulation-board__meta">
-                <span>Origen · {originAirport.codigo_iata}</span>
-                <span>Destino · {destinationAirport.codigo_iata}</span>
-            </div>
+        <div className="simulation-map-frame">
+            <div className="simulation-board">
+                <div className="simulation-board__meta">
+                    <span>Origen · {originAirport.codigo_iata}</span>
+                    <span>Destino · {destinationAirport.codigo_iata}</span>
+                </div>
 
-            <div className="simulation-board__status">
-                <span className={`simulation-board__status-badge is-${phase}`}>
-                    {phaseLabel}
-                </span>
-            </div>
+                <div className="simulation-board__status">
+                    <span className={`simulation-board__status-badge is-${phase}`}>
+                        {phaseLabel}
+                    </span>
+                </div>
 
-            <div className="simulation-board__controls">
-                <button
-                    type="button"
-                    className={`simulation-board__control ${viewMode === VIEW_MODE.GLOBAL ? 'is-active' : ''}`}
-                    onClick={() => setViewMode(VIEW_MODE.GLOBAL)}
-                >
-                    Vista global
-                </button>
-                <button
-                    type="button"
-                    className={`simulation-board__control ${viewMode === VIEW_MODE.FOCUSED ? 'is-active' : ''}`}
-                    onClick={() => setViewMode(VIEW_MODE.FOCUSED)}
-                >
-                    Zoom ruta
-                </button>
-                <span className="simulation-board__zoom-badge">Zoom x{zoomLevel}</span>
-                <button
-                    type="button"
-                    className="simulation-board__control simulation-board__control-mini"
-                    onClick={() => handleZoomChange(-1)}
-                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel <= MIN_ZOOM}
-                >
-                    -
-                </button>
-                <button
-                    type="button"
-                    className="simulation-board__control simulation-board__control-mini"
-                    onClick={() => handleZoomChange(1)}
-                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel >= MAX_ZOOM}
-                >
-                    +
-                </button>
-            </div>
+                <div className="simulation-board__controls">
+                    <button
+                        type="button"
+                        className={`simulation-board__control ${viewMode === VIEW_MODE.GLOBAL ? 'is-active' : ''}`}
+                        onClick={() => setViewMode(VIEW_MODE.GLOBAL)}
+                    >
+                        Vista global
+                    </button>
+                    <button
+                        type="button"
+                        className={`simulation-board__control ${viewMode === VIEW_MODE.FOCUSED ? 'is-active' : ''}`}
+                        onClick={() => setViewMode(VIEW_MODE.FOCUSED)}
+                    >
+                        Zoom ruta
+                    </button>
+                    <span className="simulation-board__zoom-badge">Zoom x{zoomLevel}</span>
+                    <button
+                        type="button"
+                        className="simulation-board__control simulation-board__control-mini"
+                        onClick={() => handleZoomChange(-1)}
+                        disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel <= MIN_ZOOM}
+                    >
+                        -
+                    </button>
+                    <button
+                        type="button"
+                        className="simulation-board__control simulation-board__control-mini"
+                        onClick={() => handleZoomChange(1)}
+                        disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel >= MAX_ZOOM}
+                    >
+                        +
+                    </button>
+                </div>
 
-            <svg
-                className="simulation-board__svg"
-                viewBox={formatViewBox(activeViewBox)}
-                role="img"
-                aria-label={`Recorrido entre ${originAirport.codigo_iata} y ${destinationAirport.codigo_iata}`}
-                onWheel={handleWheel}
-            >
+                <svg
+                    className="simulation-board__svg"
+                    viewBox={formatViewBox(activeViewBox)}
+                    role="img"
+                    aria-label={`Recorrido entre ${originAirport.codigo_iata} y ${destinationAirport.codigo_iata}`}
+                    onWheel={handleWheel}
+                >
                 <defs>
                     <linearGradient id="simulationOceanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#09121d" />
@@ -424,14 +401,6 @@ export default function SimulationMap({
                         <text textAnchor="middle" dominantBaseline="central">
                             {country.label}
                         </text>
-                        {country.markerTone ? (
-                            <circle
-                                cx={country.markerOffset}
-                                cy="0"
-                                r="4.6"
-                                className={`simulation-board__country-dot is-${country.markerTone}`}
-                            />
-                        ) : null}
                     </g>
                 ))}
 
@@ -487,38 +456,39 @@ export default function SimulationMap({
 
                 <g transform={`translate(${originLabelX} ${originLabelY})`}>
                     <rect width="190" height="46" rx="14" className="simulation-board__label" />
-                    <circle
-                        cx="16"
-                        cy="15"
-                        r="4"
-                        className="simulation-board__label-dot simulation-board__label-dot-origin"
-                    />
                     <text x="14" y="18" className="simulation-board__label-code">
                         {originAirport.codigo_iata}
                     </text>
                     <text x="14" y="33" className="simulation-board__label-city">
-                        {originAirport.ciudad}, {originAirport.pais}
+                        {originInfoLine}
                     </text>
+                    <circle
+                        cx={originInfoDotX}
+                        cy="29"
+                        r="4"
+                        className="simulation-board__label-dot simulation-board__label-dot-origin"
+                    />
                 </g>
 
                 <g transform={`translate(${destinationLabelX} ${destinationLabelY})`}>
                     <rect width="190" height="46" rx="14" className="simulation-board__label" />
-                    <circle
-                        cx="16"
-                        cy="15"
-                        r="4"
-                        className="simulation-board__label-dot simulation-board__label-dot-destination"
-                    />
                     <text x="14" y="18" className="simulation-board__label-code">
                         {destinationAirport.codigo_iata}
                     </text>
                     <text x="14" y="33" className="simulation-board__label-city">
-                        {destinationAirport.ciudad}, {destinationAirport.pais}
+                        {destinationInfoLine}
                     </text>
+                    <circle
+                        cx={destinationInfoDotX}
+                        cy="29"
+                        r="4"
+                        className="simulation-board__label-dot simulation-board__label-dot-destination"
+                    />
                 </g>
-            </svg>
+                </svg>
+            </div>
 
-            <div className="simulation-board__hud">
+            <div className="simulation-board__hud simulation-board__hud-external">
                 <div className="simulation-board__hud-copy">
                     <span className="simulation-board__eyebrow">Global Route Monitor</span>
                     <strong>
@@ -527,8 +497,8 @@ export default function SimulationMap({
                     </strong>
                     <small>
                         La vista puede cambiar entre mapa completo y enfoque de tramo. Ademas,
-                        en modo de zoom puedes usar los botones + y - para acercarte mejor a
-                        rutas cortas como VVI-LPB o LPB-CBB.
+                        en modo de zoom puedes usar los botones + y - varias veces para acercarte
+                        mucho mas a rutas cortas como VVI-LPB o LPB-CBB.
                     </small>
                 </div>
 
