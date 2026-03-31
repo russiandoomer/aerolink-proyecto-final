@@ -204,6 +204,7 @@ export default function SimulationMap({
     destinationAirport,
     progress,
     routeDistance,
+    routeDurationMinutes,
     speedLabel,
     phase,
     progressPercent,
@@ -273,6 +274,12 @@ export default function SimulationMap({
     const destinationInfoLine = `${destinationAirport.ciudad}, ${destinationAirport.pais}`;
     const originInfoDotX = resolveInfoDotX(originInfoLine);
     const destinationInfoDotX = resolveInfoDotX(destinationInfoLine);
+    const compactIcons = routeDurationMinutes > 0 && routeDurationMinutes <= 300;
+    const markerRadius = compactIcons ? 5.5 : 8;
+    const pulseRadius = compactIcons ? 12 : 18;
+    const planeGlowRadius = compactIcons ? 9 : 14;
+    const planeCoreRadius = compactIcons ? 8.5 : 12;
+    const planeFontSize = compactIcons ? 15 : 20;
     const phaseLabel =
         phase === 'running'
             ? 'EN RUTA'
@@ -414,39 +421,40 @@ export default function SimulationMap({
                 <circle
                     cx={start.x}
                     cy={start.y}
-                    r="8"
+                    r={markerRadius}
                     className="simulation-board__marker simulation-board__marker-origin"
                 />
                 <circle
                     cx={start.x}
                     cy={start.y}
-                    r="18"
+                    r={pulseRadius}
                     className="simulation-board__pulse simulation-board__pulse-origin"
                 />
                 <circle
                     cx={end.x}
                     cy={end.y}
-                    r="8"
+                    r={markerRadius}
                     className="simulation-board__marker simulation-board__marker-destination"
                 />
                 <circle
                     cx={end.x}
                     cy={end.y}
-                    r="18"
+                    r={pulseRadius}
                     className="simulation-board__pulse simulation-board__pulse-destination"
                 />
 
                 <circle
                     cx={current.x}
                     cy={current.y}
-                    r="14"
+                    r={planeGlowRadius}
                     className="simulation-board__marker simulation-board__marker-plane-glow"
                 />
 
                 <g transform={`translate(${current.x} ${current.y}) rotate(${angle})`}>
-                    <circle r="12" className="simulation-board__plane-core" />
+                    <circle r={planeCoreRadius} className="simulation-board__plane-core" />
                     <text
                         className="simulation-board__plane-icon"
+                        style={{ fontSize: `${planeFontSize}px` }}
                         textAnchor="middle"
                         dominantBaseline="central"
                     >

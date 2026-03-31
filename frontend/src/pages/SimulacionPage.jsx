@@ -239,6 +239,25 @@ export default function SimulacionPage() {
         originAirport && destinationAirport
             ? haversineDistance(originAirport, destinationAirport)
             : 0;
+    const routeDurationMinutes = useMemo(() => {
+        const flightDuration = Number(selectedFlight?.ruta?.duracion_minutos ?? 0);
+
+        if (simulationMode === SIMULATION_MODES.FLIGHT && flightDuration > 0) {
+            return flightDuration;
+        }
+
+        if (!originAirport || !destinationAirport) {
+            return 0;
+        }
+
+        return Math.max(35, Math.round((routeDistance / 780) * 60));
+    }, [
+        simulationMode,
+        selectedFlight?.ruta?.duracion_minutos,
+        originAirport?.id,
+        destinationAirport?.id,
+        routeDistance,
+    ]);
 
     const canSimulate =
         originAirport &&
@@ -606,6 +625,7 @@ export default function SimulacionPage() {
                         destinationAirport={destinationAirport}
                         progress={displayProgress}
                         routeDistance={routeDistance}
+                        routeDurationMinutes={routeDurationMinutes}
                         speedLabel={selectedSpeed.label}
                         phase={phase}
                         progressPercent={progressPercent}
