@@ -796,6 +796,16 @@ a {
     justify-content: flex-start;
 }
 
+.cell-stack {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.cell-stack small {
+    color: var(--text-soft);
+    line-height: 1.45;
+}
+
 .table-action {
     padding: 0.6rem 0.8rem;
     background: transparent;
@@ -1186,6 +1196,22 @@ a {
     text-align: center;
 }
 
+.simulation-board__zoom-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 78px;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(8, 15, 24, 0.52);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    color: rgba(226, 232, 240, 0.82);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    backdrop-filter: blur(10px);
+}
+
 .simulation-board__control:disabled {
     opacity: 0.48;
     cursor: not-allowed;
@@ -1263,6 +1289,23 @@ a {
 .simulation-board__country-label.is-selected text {
     fill: rgba(248, 250, 252, 0.96);
     font-size: 11.5px;
+}
+
+.simulation-board__country-dot {
+    stroke: rgba(248, 250, 252, 0.78);
+    stroke-width: 1.5;
+}
+
+.simulation-board__country-dot.is-origin {
+    fill: #22c55e;
+}
+
+.simulation-board__country-dot.is-destination {
+    fill: #f97316;
+}
+
+.simulation-board__country-dot.is-both {
+    fill: #38bdf8;
 }
 
 .simulation-board__route-halo {

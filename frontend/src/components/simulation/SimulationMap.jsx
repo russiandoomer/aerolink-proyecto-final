@@ -14,6 +14,8 @@ const VIEW_MODE = {
     GLOBAL: 'global',
     FOCUSED: 'focused',
 };
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 5;
 
 const projection = geoNaturalEarth1().fitExtent(
     [
@@ -74,6 +76,10 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
+function estimateLabelWidth(label) {
+    return Math.max(42, label.length * 6.1);
+}
+
 function projectCoordinate(latitud, longitud) {
     const point = projection([Number(longitud), Number(latitud)]);
 
@@ -107,12 +113,16 @@ function buildRoutePoints(originAirport, destinationAirport, segments = 68) {
 }
 
 function resolveCountryLabel(country, originAirport, destinationAirport) {
-    const isSelected = country.label === originAirport.pais || country.label === destinationAirport.pais;
+    const isOrigin = country.label === originAirport.pais;
+    const isDestination = country.label === destinationAirport.pais;
+    const isSelected = isOrigin || isDestination;
 
     return {
         ...country,
         ...projectCoordinate(country.latitud, country.longitud),
         isSelected,
+        markerTone: isOrigin && isDestination ? 'both' : isOrigin ? 'origin' : isDestination ? 'destination' : null,
+        markerOffset: estimateLabelWidth(country.label) / 2 + 10,
     };
 }
 
@@ -135,11 +145,19 @@ function resolveCountryPaths(highlightedCountries) {
 }
 
 function resolveDefaultZoomLevel(routeDistance) {
+    if (routeDistance <= 250) {
+        return 5;
+    }
+
     if (routeDistance <= 700) {
+        return 4;
+    }
+
+    if (routeDistance <= 1600) {
         return 3;
     }
 
-    if (routeDistance <= 1800) {
+    if (routeDistance <= 3200) {
         return 2;
     }
 
@@ -151,16 +169,22 @@ function resolveFocusedViewBox(targetPoints, zoomLevel) {
         1: 168,
         2: 120,
         3: 80,
+        4: 52,
+        5: 32,
     };
     const minWidthMap = {
         1: 340,
         2: 250,
         3: 190,
+        4: 138,
+        5: 102,
     };
     const minHeightMap = {
         1: 210,
         2: 170,
         3: 135,
+        4: 102,
+        5: 78,
     };
     const aspectRatio = BOARD_WIDTH / BOARD_HEIGHT;
     const padding = paddingMap[zoomLevel] ?? paddingMap[1];
@@ -207,21 +231,35 @@ export default function SimulationMap({
     progressPercent,
 }) {
     const [viewMode, setViewMode] = useState(VIEW_MODE.GLOBAL);
-    const [zoomLevel, setZoomLevel] = useState(1);
+    const [zoomLevel, setZoomLevel] = useState(MIN_ZOOM);
 
     useEffect(() => {
         if (!originAirport || !destinationAirport) {
             setViewMode(VIEW_MODE.GLOBAL);
-            setZoomLevel(1);
+            setZoomLevel(MIN_ZOOM);
             return;
         }
 
         const nextZoomLevel = resolveDefaultZoomLevel(routeDistance);
-        const nextViewMode = routeDistance <= 2200 ? VIEW_MODE.FOCUSED : VIEW_MODE.GLOBAL;
+        const nextViewMode = routeDistance <= 4200 ? VIEW_MODE.FOCUSED : VIEW_MODE.GLOBAL;
 
         setZoomLevel(nextZoomLevel);
         setViewMode(nextViewMode);
     }, [originAirport?.id, destinationAirport?.id, routeDistance]);
+
+    function handleZoomChange(delta) {
+        setViewMode(VIEW_MODE.FOCUSED);
+        setZoomLevel((value) => clamp(value + delta, MIN_ZOOM, MAX_ZOOM));
+    }
+
+    function handleWheel(event) {
+        if (viewMode !== VIEW_MODE.FOCUSED) {
+            return;
+        }
+
+        event.preventDefault();
+        handleZoomChange(event.deltaY < 0 ? 1 : -1);
+    }
 
     if (!originAirport || !destinationAirport) {
         return (
@@ -306,19 +344,20 @@ export default function SimulationMap({
                 >
                     Zoom ruta
                 </button>
+                <span className="simulation-board__zoom-badge">Zoom x{zoomLevel}</span>
                 <button
                     type="button"
                     className="simulation-board__control simulation-board__control-mini"
-                    onClick={() => setZoomLevel((value) => Math.max(1, value - 1))}
-                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel <= 1}
+                    onClick={() => handleZoomChange(-1)}
+                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel <= MIN_ZOOM}
                 >
                     -
                 </button>
                 <button
                     type="button"
                     className="simulation-board__control simulation-board__control-mini"
-                    onClick={() => setZoomLevel((value) => Math.min(3, value + 1))}
-                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel >= 3}
+                    onClick={() => handleZoomChange(1)}
+                    disabled={viewMode !== VIEW_MODE.FOCUSED || zoomLevel >= MAX_ZOOM}
                 >
                     +
                 </button>
@@ -329,6 +368,7 @@ export default function SimulationMap({
                 viewBox={formatViewBox(activeViewBox)}
                 role="img"
                 aria-label={`Recorrido entre ${originAirport.codigo_iata} y ${destinationAirport.codigo_iata}`}
+                onWheel={handleWheel}
             >
                 <defs>
                     <linearGradient id="simulationOceanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -384,6 +424,14 @@ export default function SimulationMap({
                         <text textAnchor="middle" dominantBaseline="central">
                             {country.label}
                         </text>
+                        {country.markerTone ? (
+                            <circle
+                                cx={country.markerOffset}
+                                cy="0"
+                                r="4.6"
+                                className={`simulation-board__country-dot is-${country.markerTone}`}
+                            />
+                        ) : null}
                     </g>
                 ))}
 
@@ -478,8 +526,9 @@ export default function SimulationMap({
                         {destinationAirport.pais}
                     </strong>
                     <small>
-                        La vista puede cambiar entre mapa completo y enfoque de tramo para seguir
-                        mejor rutas cortas como VVI-LPB o LPB-CBB.
+                        La vista puede cambiar entre mapa completo y enfoque de tramo. Ademas,
+                        en modo de zoom puedes usar los botones + y - para acercarte mejor a
+                        rutas cortas como VVI-LPB o LPB-CBB.
                     </small>
                 </div>
 

@@ -1,11 +1,59 @@
 import ResourceManager from '../components/modules/ResourceManager';
 import StatusBadge from '../components/common/StatusBadge';
+import {
+    formatAircraftCapabilityLabel,
+    formatAircraftProfileLabel,
+    formatAircraftPurposeLabel,
+} from '../utils/format';
 
 const fleetStateTones = {
     activo: 'emerald',
     mantenimiento: 'amber',
     fuera_servicio: 'red',
 };
+
+const AIRCRAFT_PROFILE_PRESETS = [
+    {
+        value: 'regional',
+        label: 'Regional | E190-E2',
+        defaults: {
+            modelo: 'E190-E2',
+            fabricante: 'Embraer',
+            capacidad: '114',
+            alcance_km: '5278',
+        },
+    },
+    {
+        value: 'regional_plus',
+        label: 'Regional extendido | A220-300',
+        defaults: {
+            modelo: 'A220-300',
+            fabricante: 'Airbus',
+            capacidad: '145',
+            alcance_km: '6200',
+        },
+    },
+    {
+        value: 'troncal',
+        label: 'Troncal | A320neo / 737',
+        defaults: {
+            modelo: 'A320neo',
+            fabricante: 'Airbus',
+            capacidad: '186',
+            alcance_km: '6500',
+        },
+    },
+    {
+        value: 'largo_alcance',
+        label: 'Largo alcance | 787-8',
+        defaults: {
+            modelo: '787-8',
+            fabricante: 'Boeing',
+            capacidad: '242',
+            alcance_km: '13620',
+        },
+    },
+];
 
 function airlineCountryOptions(airlines = []) {
     return Array.from(new Set((airlines ?? []).map((item) => item.pais).filter(Boolean)))
@@ -25,11 +73,33 @@ function airlineOptionsByCountry(airlines = [], country = '') {
         }));
 }
 
+function resolveAircraftPreset(model = '') {
+    const normalizedModel = String(model).toUpperCase();
+
+    if (normalizedModel.includes('787') || normalizedModel.includes('A330')) {
+        return 'largo_alcance';
+    }
+
+    if (normalizedModel.includes('A220')) {
+        return 'regional_plus';
+    }
+
+    if (normalizedModel.includes('E190') || normalizedModel.includes('ATR')) {
+        return 'regional';
+    }
+
+    return 'troncal';
+}
+
+function resolvePresetDefaults(value) {
+    return AIRCRAFT_PROFILE_PRESETS.find((item) => item.value === value)?.defaults ?? {};
+}
+
 export default function FlotaPage() {
     return (
         <ResourceManager
             title="Gestion de flota"
-            description="Registra aeronaves filtrando primero por el pais de la aerolinea para mantener la flota mejor organizada."
+            description="Organiza la flota por pais y aerolinea. Cada aeronave muestra un perfil operativo para que sea facil distinguir si sirve para rutas regionales, troncales o de largo alcance."
             endpoint="aviones"
             catalogKeys={['aerolineas']}
             searchPlaceholder="Buscar por matricula, modelo o fabricante"
@@ -71,12 +141,23 @@ export default function FlotaPage() {
                     label: 'Modelo',
                 },
                 {
+                    key: 'perfil_operativo',
+                    label: 'Perfil',
+                    render: (row) => (
+                        <div className="cell-stack">
+                            <strong>{formatAircraftProfileLabel(row)}</strong>
+                            <small>{formatAircraftPurposeLabel(row)}</small>
+                        </div>
+                    ),
+                },
+                {
                     key: 'fabricante',
                     label: 'Fabricante',
                 },
                 {
                     key: 'capacidad',
                     label: 'Capacidad',
+                    render: (row) => formatAircraftCapabilityLabel(row),
                 },
                 {
                     key: 'estado',
@@ -90,6 +171,17 @@ export default function FlotaPage() {
                 },
             ]}
             fields={[
+                {
+                    name: 'perfil_base',
+                    label: 'Tipo de avion sugerido',
+                    type: 'select',
+                    options: AIRCRAFT_PROFILE_PRESETS.map((preset) => ({
+                        value: preset.value,
+                        label: preset.label,
+                    })),
+                    helpText: 'Selecciona un perfil para autocompletar modelo, fabricante, capacidad y alcance.',
+                    onChange: (value) => resolvePresetDefaults(value),
+                },
                 {
                     name: 'pais_aerolinea',
                     label: 'Pais de la aerolinea',
@@ -116,6 +208,7 @@ export default function FlotaPage() {
                     name: 'modelo',
                     label: 'Modelo',
                     placeholder: 'A320-200',
+                    helpText: 'Ejemplos recomendados: E190-E2, A220-300, A320neo, 787-8.',
                 },
                 {
                     name: 'fabricante',
@@ -131,6 +224,7 @@ export default function FlotaPage() {
                     name: 'alcance_km',
                     label: 'Alcance (km)',
                     type: 'number',
+                    helpText: 'El alcance ayuda a saber si el avion sirve para tramos cortos, regionales o de largo recorrido.',
                 },
                 {
                     name: 'estado',
@@ -149,10 +243,12 @@ export default function FlotaPage() {
                 },
             ]}
             initialValues={{
+                perfil_base: '',
                 pais_aerolinea: 'Bolivia',
                 estado: 'activo',
             }}
             transformFormData={(item) => ({
+                perfil_base: resolveAircraftPreset(item.modelo),
                 pais_aerolinea: item.aerolinea?.pais ?? '',
                 aerolinea_id: String(item.aerolinea_id ?? ''),
                 matricula: item.matricula ?? '',

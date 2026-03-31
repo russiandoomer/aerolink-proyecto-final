@@ -1,6 +1,7 @@
 import ResourceManager from '../components/modules/ResourceManager';
 import StatusBadge from '../components/common/StatusBadge';
 import {
+    formatAircraftProfileLabel,
     formatCurrency,
     formatDateTime,
     formatRouteLabel,
@@ -45,7 +46,9 @@ function airlineAircraftOptions(aircraft = [], selectedAirlineId = '', selectedA
         })
         .map((item) => ({
             value: String(item.id),
-            label: `${item.matricula} | ${item.modelo} | ${item.capacidad} pax`,
+            label:
+                `${item.matricula} | ${item.modelo} | ${formatAircraftProfileLabel(item)} | `
+                + `${item.capacidad} pax`,
         }));
 }
 
@@ -215,7 +218,7 @@ export default function VuelosPage() {
                             formData.aerolinea_id,
                             formData.avion_id
                         ),
-                    helpText: 'Solo se muestran aviones activos de la aerolinea seleccionada.',
+                    helpText: 'Solo se muestran aviones activos. La etiqueta indica si el equipo es regional, troncal o de largo alcance.',
                     onChange: (value, _nextState, catalogs) => ({
                         capacidad: resolveAircraftCapacity(catalogs.aviones, value),
                     }),

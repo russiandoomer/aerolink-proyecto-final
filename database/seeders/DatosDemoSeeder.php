@@ -12,15 +12,27 @@ class DatosDemoSeeder extends Seeder
         $timestamp = now();
         $airlineDefinitions = $this->airlineDefinitions();
 
+        $this->cleanupLegacyAirlines();
         $this->seedAirlines($timestamp, $airlineDefinitions);
 
         $airlineIds = DB::table('aerolineas')->pluck('id', 'codigo_iata')->all();
+        $this->cleanupDemoOperationalData(array_values($airlineIds));
+        $this->cleanupDemoPassengers();
         $airportIds = DB::table('aeropuertos')->pluck('id', 'codigo_iata')->all();
+        $airportCountries = DB::table('aeropuertos')->pluck('pais', 'codigo_iata')->all();
         $stateIds = DB::table('estados_vuelo')->pluck('id', 'codigo')->all();
 
         $aircraftDefinitions = $this->aircraftDefinitions($airlineDefinitions);
         $routeDefinitions = $this->routeDefinitions();
-        $flightDefinitions = $this->flightDefinitions();
+        $flightDefinitions = array_merge(
+            $this->manualFlightDefinitions(),
+            $this->generatedFlightDefinitions(
+                $airlineDefinitions,
+                $aircraftDefinitions,
+                $routeDefinitions,
+                $airportCountries
+            )
+        );
         $passengerDefinitions = $this->passengerDefinitions();
 
         $this->seedAircraft($timestamp, $aircraftDefinitions, $airlineIds);
@@ -39,6 +51,61 @@ class DatosDemoSeeder extends Seeder
             $flightIds,
             $passengerIds
         );
+    }
+
+    private function cleanupLegacyAirlines(): void
+    {
+        $legacyNames = ['BOLIVIA', 'JEFER', 'GOL', 'ALM'];
+        $legacyCodes = ['GOL', 'ALM'];
+
+        $airlineIds = DB::table('aerolineas')
+            ->whereIn(DB::raw('UPPER(nombre)'), $legacyNames)
+            ->orWhereIn(DB::raw('UPPER(COALESCE(codigo_iata, \'\'))'), $legacyCodes)
+            ->pluck('id')
+            ->all();
+
+        if (count($airlineIds) === 0) {
+            return;
+        }
+
+        $flightIds = DB::table('vuelos')
+            ->whereIn('aerolinea_id', $airlineIds)
+            ->pluck('id')
+            ->all();
+
+        if (count($flightIds) > 0) {
+            DB::table('reservas')->whereIn('vuelo_id', $flightIds)->delete();
+            DB::table('vuelos')->whereIn('id', $flightIds)->delete();
+        }
+
+        DB::table('aviones')->whereIn('aerolinea_id', $airlineIds)->delete();
+        DB::table('aerolineas')->whereIn('id', $airlineIds)->delete();
+    }
+
+    private function cleanupDemoOperationalData(array $airlineIds): void
+    {
+        if (count($airlineIds) === 0) {
+            return;
+        }
+
+        $flightIds = DB::table('vuelos')
+            ->whereIn('aerolinea_id', $airlineIds)
+            ->pluck('id')
+            ->all();
+
+        if (count($flightIds) > 0) {
+            DB::table('reservas')->whereIn('vuelo_id', $flightIds)->delete();
+            DB::table('vuelos')->whereIn('id', $flightIds)->delete();
+        }
+
+        DB::table('aviones')->whereIn('aerolinea_id', $airlineIds)->delete();
+    }
+
+    private function cleanupDemoPassengers(): void
+    {
+        DB::table('pasajeros')
+            ->where('email', 'like', '%@demoaero.test')
+            ->delete();
     }
 
     private function seedAirlines($timestamp, array $definitions): void
@@ -348,10 +415,10 @@ class DatosDemoSeeder extends Seeder
     {
         $countryCatalog = [
             'Bolivia' => [
-                ['codigo' => 'ALB', 'nombre' => 'AeroLink Bolivia'],
-                ['codigo' => 'BVA', 'nombre' => 'Altiplano Bolivia Air'],
-                ['codigo' => 'BVC', 'nombre' => 'Oriente Bolivia Connect'],
-                ['codigo' => 'BVD', 'nombre' => 'Condor Bolivia'],
+                ['codigo' => 'ALB', 'nombre' => 'AeroLink Andina'],
+                ['codigo' => 'BVA', 'nombre' => 'Altiplano Air'],
+                ['codigo' => 'BVC', 'nombre' => 'Oriente Connect'],
+                ['codigo' => 'BVD', 'nombre' => 'Condor Jet'],
             ],
             'Peru' => [
                 ['codigo' => 'SKA', 'nombre' => 'SkyBridge Andes'],
@@ -477,54 +544,70 @@ class DatosDemoSeeder extends Seeder
 
     private function aircraftDefinitions(array $airlineDefinitions): array
     {
-        $baseDefinitions = [
-            ['aerolinea' => 'ALB', 'matricula' => 'CP-3201', 'modelo' => 'A320-200', 'fabricante' => 'Airbus', 'capacidad' => 180, 'alcance_km' => 6100, 'estado' => 'activo', 'dias_mantenimiento' => 12],
-            ['aerolinea' => 'ALB', 'matricula' => 'CP-7378', 'modelo' => '737-800', 'fabricante' => 'Boeing', 'capacidad' => 162, 'alcance_km' => 5400, 'estado' => 'activo', 'dias_mantenimiento' => 30],
-            ['aerolinea' => 'ALB', 'matricula' => 'CP-2205', 'modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200, 'estado' => 'activo', 'dias_mantenimiento' => 18],
-            ['aerolinea' => 'SKA', 'matricula' => 'OB-3210', 'modelo' => 'A321neo', 'fabricante' => 'Airbus', 'capacidad' => 200, 'alcance_km' => 7400, 'estado' => 'activo', 'dias_mantenimiento' => 15],
-            ['aerolinea' => 'SKA', 'matricula' => 'OB-1907', 'modelo' => 'E190', 'fabricante' => 'Embraer', 'capacidad' => 112, 'alcance_km' => 4500, 'estado' => 'activo', 'dias_mantenimiento' => 9],
-            ['aerolinea' => 'SKA', 'matricula' => 'OB-7871', 'modelo' => '787-8', 'fabricante' => 'Boeing', 'capacidad' => 242, 'alcance_km' => 13620, 'estado' => 'activo', 'dias_mantenimiento' => 22],
-            ['aerolinea' => 'PAC', 'matricula' => 'CC-3208', 'modelo' => 'A320neo', 'fabricante' => 'Airbus', 'capacidad' => 186, 'alcance_km' => 6500, 'estado' => 'activo', 'dias_mantenimiento' => 14],
-            ['aerolinea' => 'PAC', 'matricula' => 'CC-3217', 'modelo' => 'A321neo', 'fabricante' => 'Airbus', 'capacidad' => 210, 'alcance_km' => 7400, 'estado' => 'activo', 'dias_mantenimiento' => 21],
-            ['aerolinea' => 'PAC', 'matricula' => 'CC-3304', 'modelo' => 'A330-300', 'fabricante' => 'Airbus', 'capacidad' => 278, 'alcance_km' => 11750, 'estado' => 'mantenimiento', 'dias_mantenimiento' => 5],
-            ['aerolinea' => 'NVA', 'matricula' => 'ZS-7382', 'modelo' => '737-800', 'fabricante' => 'Boeing', 'capacidad' => 168, 'alcance_km' => 5400, 'estado' => 'activo', 'dias_mantenimiento' => 11],
-            ['aerolinea' => 'NVA', 'matricula' => 'ZS-3214', 'modelo' => 'A321XLR', 'fabricante' => 'Airbus', 'capacidad' => 206, 'alcance_km' => 8700, 'estado' => 'activo', 'dias_mantenimiento' => 17],
-            ['aerolinea' => 'NVA', 'matricula' => 'ZS-7874', 'modelo' => '787-9', 'fabricante' => 'Boeing', 'capacidad' => 290, 'alcance_km' => 14140, 'estado' => 'fuera_servicio', 'dias_mantenimiento' => 42],
+        $coreFleet = [
+            'ALB' => [
+                ['matricula' => 'CP-2205', 'modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200],
+                ['matricula' => 'CP-3201', 'modelo' => 'A320-200', 'fabricante' => 'Airbus', 'capacidad' => 180, 'alcance_km' => 6100],
+                ['matricula' => 'CP-7378', 'modelo' => '737-800', 'fabricante' => 'Boeing', 'capacidad' => 162, 'alcance_km' => 5400],
+                ['matricula' => 'CP-7871', 'modelo' => '787-8', 'fabricante' => 'Boeing', 'capacidad' => 242, 'alcance_km' => 13620],
+            ],
+            'SKA' => [
+                ['matricula' => 'OB-1907', 'modelo' => 'E190-E2', 'fabricante' => 'Embraer', 'capacidad' => 114, 'alcance_km' => 5278],
+                ['matricula' => 'OB-2206', 'modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200],
+                ['matricula' => 'OB-3210', 'modelo' => 'A321neo', 'fabricante' => 'Airbus', 'capacidad' => 200, 'alcance_km' => 7400],
+                ['matricula' => 'OB-7871', 'modelo' => '787-8', 'fabricante' => 'Boeing', 'capacidad' => 242, 'alcance_km' => 13620],
+            ],
+            'PAC' => [
+                ['matricula' => 'CC-2204', 'modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200],
+                ['matricula' => 'CC-3208', 'modelo' => 'A320neo', 'fabricante' => 'Airbus', 'capacidad' => 186, 'alcance_km' => 6500],
+                ['matricula' => 'CC-3217', 'modelo' => 'A321neo', 'fabricante' => 'Airbus', 'capacidad' => 210, 'alcance_km' => 7400],
+                ['matricula' => 'CC-7879', 'modelo' => '787-8', 'fabricante' => 'Boeing', 'capacidad' => 242, 'alcance_km' => 13620],
+            ],
+            'NVA' => [
+                ['matricula' => 'ZS-1906', 'modelo' => 'E190-E2', 'fabricante' => 'Embraer', 'capacidad' => 114, 'alcance_km' => 5278],
+                ['matricula' => 'ZS-7382', 'modelo' => '737-800', 'fabricante' => 'Boeing', 'capacidad' => 168, 'alcance_km' => 5400],
+                ['matricula' => 'ZS-3214', 'modelo' => 'A321XLR', 'fabricante' => 'Airbus', 'capacidad' => 206, 'alcance_km' => 8700],
+                ['matricula' => 'ZS-7874', 'modelo' => '787-9', 'fabricante' => 'Boeing', 'capacidad' => 290, 'alcance_km' => 14140],
+            ],
         ];
 
-        $existingAirlineCodes = array_column($baseDefinitions, 'aerolinea');
-        $templates = [
-            ['modelo' => 'A320neo', 'fabricante' => 'Airbus', 'capacidad' => 186, 'alcance_km' => 6300],
-            ['modelo' => '737-800', 'fabricante' => 'Boeing', 'capacidad' => 174, 'alcance_km' => 5400],
-            ['modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200],
+        $profiles = [
             ['modelo' => 'E190-E2', 'fabricante' => 'Embraer', 'capacidad' => 114, 'alcance_km' => 5278],
+            ['modelo' => 'A220-300', 'fabricante' => 'Airbus', 'capacidad' => 145, 'alcance_km' => 6200],
+            ['modelo' => 'A320neo', 'fabricante' => 'Airbus', 'capacidad' => 186, 'alcance_km' => 6500],
+            ['modelo' => '787-8', 'fabricante' => 'Boeing', 'capacidad' => 242, 'alcance_km' => 13620],
         ];
 
-        $generatedDefinitions = [];
-        $generatedIndex = 1;
+        $definitions = [];
 
-        foreach ($airlineDefinitions as $definition) {
-            if (in_array($definition['codigo_iata'], $existingAirlineCodes, true)) {
-                continue;
+        foreach ($airlineDefinitions as $airlineIndex => $definition) {
+            $airlineCode = $definition['codigo_iata'];
+            $fleet = $coreFleet[$airlineCode] ?? array_map(
+                function (array $profile, int $profileIndex) use ($airlineCode) {
+                    return [
+                        'matricula' => sprintf('%s-%03d', $airlineCode, 101 + $profileIndex),
+                        ...$profile,
+                    ];
+                },
+                $profiles,
+                array_keys($profiles)
+            );
+
+            foreach ($fleet as $fleetIndex => $aircraft) {
+                $definitions[] = [
+                    'aerolinea' => $airlineCode,
+                    'matricula' => $aircraft['matricula'],
+                    'modelo' => $aircraft['modelo'],
+                    'fabricante' => $aircraft['fabricante'],
+                    'capacidad' => $aircraft['capacidad'],
+                    'alcance_km' => $aircraft['alcance_km'],
+                    'estado' => 'activo',
+                    'dias_mantenimiento' => 7 + (($airlineIndex + $fleetIndex) % 18),
+                ];
             }
-
-            $template = $templates[($generatedIndex - 1) % count($templates)];
-
-            $generatedDefinitions[] = [
-                'aerolinea' => $definition['codigo_iata'],
-                'matricula' => $definition['codigo_iata'] . '-' . str_pad((string) (100 + $generatedIndex), 3, '0', STR_PAD_LEFT),
-                'modelo' => $template['modelo'],
-                'fabricante' => $template['fabricante'],
-                'capacidad' => $template['capacidad'],
-                'alcance_km' => $template['alcance_km'],
-                'estado' => 'activo',
-                'dias_mantenimiento' => 6 + ($generatedIndex % 20),
-            ];
-
-            $generatedIndex++;
         }
 
-        return array_merge($baseDefinitions, $generatedDefinitions);
+        return $definitions;
     }
 
     private function routeDefinitions(): array
@@ -537,13 +620,22 @@ class DatosDemoSeeder extends Seeder
             ['codigo' => 'VVI-EZE', 'origen' => 'VVI', 'destino' => 'EZE', 'distancia_km' => 1930.00, 'duracion_minutos' => 180, 'tarifa_base' => 770.00, 'tipo_operacion' => 'adicional', 'frecuencia_referencial' => 'Bajo demanda'],
             ['codigo' => 'VVI-GRU', 'origen' => 'VVI', 'destino' => 'GRU', 'distancia_km' => 1670.00, 'duracion_minutos' => 170, 'tarifa_base' => 720.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'LPB-CUZ', 'origen' => 'LPB', 'destino' => 'CUZ', 'distancia_km' => 535.00, 'duracion_minutos' => 70, 'tarifa_base' => 340.00, 'tipo_operacion' => 'adicional', 'frecuencia_referencial' => 'Lun-Mie-Vie'],
+            ['codigo' => 'LIM-AQP', 'origen' => 'LIM', 'destino' => 'AQP', 'distancia_km' => 765.00, 'duracion_minutos' => 95, 'tarifa_base' => 280.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'LIM-SCL', 'origen' => 'LIM', 'destino' => 'SCL', 'distancia_km' => 2460.00, 'duracion_minutos' => 220, 'tarifa_base' => 860.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'LIM-MAD', 'origen' => 'LIM', 'destino' => 'MAD', 'distancia_km' => 9520.00, 'duracion_minutos' => 720, 'tarifa_base' => 2950.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Semanal'],
+            ['codigo' => 'SCL-IQQ', 'origen' => 'SCL', 'destino' => 'IQQ', 'distancia_km' => 1465.00, 'duracion_minutos' => 160, 'tarifa_base' => 530.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'GRU-MAD', 'origen' => 'GRU', 'destino' => 'MAD', 'distancia_km' => 8370.00, 'duracion_minutos' => 640, 'tarifa_base' => 2820.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Semanal'],
+            ['codigo' => 'GRU-GIG', 'origen' => 'GRU', 'destino' => 'GIG', 'distancia_km' => 360.00, 'duracion_minutos' => 65, 'tarifa_base' => 290.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
+            ['codigo' => 'EZE-COR', 'origen' => 'EZE', 'destino' => 'COR', 'distancia_km' => 650.00, 'duracion_minutos' => 80, 'tarifa_base' => 360.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
+            ['codigo' => 'BOG-MDE', 'origen' => 'BOG', 'destino' => 'MDE', 'distancia_km' => 215.00, 'duracion_minutos' => 55, 'tarifa_base' => 260.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
+            ['codigo' => 'MEX-CUN', 'origen' => 'MEX', 'destino' => 'CUN', 'distancia_km' => 1285.00, 'duracion_minutos' => 155, 'tarifa_base' => 440.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
+            ['codigo' => 'MAD-BCN', 'origen' => 'MAD', 'destino' => 'BCN', 'distancia_km' => 505.00, 'duracion_minutos' => 75, 'tarifa_base' => 340.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'MAD-CDG', 'origen' => 'MAD', 'destino' => 'CDG', 'distancia_km' => 1050.00, 'duracion_minutos' => 125, 'tarifa_base' => 620.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'CDG-LHR', 'origen' => 'CDG', 'destino' => 'LHR', 'distancia_km' => 350.00, 'duracion_minutos' => 75, 'tarifa_base' => 410.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'JNB-NBO', 'origen' => 'JNB', 'destino' => 'NBO', 'distancia_km' => 2920.00, 'duracion_minutos' => 240, 'tarifa_base' => 980.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Interdiaria'],
+            ['codigo' => 'CMN-RAK', 'origen' => 'CMN', 'destino' => 'RAK', 'distancia_km' => 220.00, 'duracion_minutos' => 55, 'tarifa_base' => 240.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'CMN-MAD', 'origen' => 'CMN', 'destino' => 'MAD', 'distancia_km' => 845.00, 'duracion_minutos' => 110, 'tarifa_base' => 520.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Diaria'],
+            ['codigo' => 'CAI-HRG', 'origen' => 'CAI', 'destino' => 'HRG', 'distancia_km' => 400.00, 'duracion_minutos' => 65, 'tarifa_base' => 300.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'CAI-CDG', 'origen' => 'CAI', 'destino' => 'CDG', 'distancia_km' => 3210.00, 'duracion_minutos' => 285, 'tarifa_base' => 1120.00, 'tipo_operacion' => 'adicional', 'frecuencia_referencial' => 'Semanal'],
             ['codigo' => 'MEX-MIA', 'origen' => 'MEX', 'destino' => 'MIA', 'distancia_km' => 2050.00, 'duracion_minutos' => 185, 'tarifa_base' => 890.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Interdiaria'],
             ['codigo' => 'JFK-LHR', 'origen' => 'JFK', 'destino' => 'LHR', 'distancia_km' => 5540.00, 'duracion_minutos' => 420, 'tarifa_base' => 1590.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Diaria'],
@@ -552,10 +644,11 @@ class DatosDemoSeeder extends Seeder
             ['codigo' => 'SCL-EZE', 'origen' => 'SCL', 'destino' => 'EZE', 'distancia_km' => 1140.00, 'duracion_minutos' => 120, 'tarifa_base' => 610.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'MIA-JFK', 'origen' => 'MIA', 'destino' => 'JFK', 'distancia_km' => 1760.00, 'duracion_minutos' => 185, 'tarifa_base' => 760.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
             ['codigo' => 'CPT-JNB', 'origen' => 'CPT', 'destino' => 'JNB', 'distancia_km' => 1270.00, 'duracion_minutos' => 125, 'tarifa_base' => 430.00, 'tipo_operacion' => 'nacional', 'frecuencia_referencial' => 'Diaria'],
+            ['codigo' => 'NBO-CAI', 'origen' => 'NBO', 'destino' => 'CAI', 'distancia_km' => 3530.00, 'duracion_minutos' => 305, 'tarifa_base' => 1170.00, 'tipo_operacion' => 'internacional', 'frecuencia_referencial' => 'Semanal'],
         ];
     }
 
-    private function flightDefinitions(): array
+    private function manualFlightDefinitions(): array
     {
         return [
             ['codigo_vuelo' => 'ALB101', 'aerolinea' => 'ALB', 'matricula' => 'CP-3201', 'ruta' => 'VVI-LPB', 'estado' => 'programado', 'dias' => 1, 'hora' => 7, 'minuto' => 30, 'terminal' => 'T1', 'puerta' => 'A3', 'observaciones' => 'Operacion regular matinal.', 'factor_tarifa' => 1.00],
@@ -588,6 +681,147 @@ class DatosDemoSeeder extends Seeder
         ];
     }
 
+    private function generatedFlightDefinitions(
+        array $airlineDefinitions,
+        array $aircraftDefinitions,
+        array $routeDefinitions,
+        array $airportCountries
+    ): array {
+        $manualAirlineCodes = ['ALB', 'SKA', 'PAC', 'NVA'];
+        $aircraftByAirline = [];
+
+        foreach ($aircraftDefinitions as $aircraft) {
+            $aircraftByAirline[$aircraft['aerolinea']][] = $aircraft;
+        }
+
+        $routeCatalog = array_map(function (array $route) use ($airportCountries) {
+            return [
+                ...$route,
+                'pais_origen' => $airportCountries[$route['origen']] ?? '',
+                'pais_destino' => $airportCountries[$route['destino']] ?? '',
+            ];
+        }, $routeDefinitions);
+
+        $generatedFlights = [];
+
+        foreach ($airlineDefinitions as $airlineIndex => $definition) {
+            $airlineCode = $definition['codigo_iata'];
+
+            if (in_array($airlineCode, $manualAirlineCodes, true)) {
+                continue;
+            }
+
+            $preferredRoutes = array_slice(
+                $this->selectPreferredRoutesForCountry($definition['pais'], $routeCatalog),
+                0,
+                2
+            );
+
+            foreach ($preferredRoutes as $routeIndex => $route) {
+                $aircraft = $this->selectAircraftForRoute(
+                    $aircraftByAirline[$airlineCode] ?? [],
+                    (float) $route['distancia_km'],
+                    $routeIndex
+                );
+
+                if (!$aircraft) {
+                    continue;
+                }
+
+                $flightNumber = 100 + (($airlineIndex % 8) * 20) + ($routeIndex * 7) + 1;
+                $hour = 6 + (($airlineIndex + ($routeIndex * 3)) % 12);
+                $minute = $routeIndex === 0 ? 10 : 45;
+                $states = ['programado', 'embarcando', 'programado', 'demorado'];
+                $state = $states[($airlineIndex + $routeIndex) % count($states)];
+
+                $generatedFlights[] = [
+                    'codigo_vuelo' => $airlineCode . str_pad((string) $flightNumber, 3, '0', STR_PAD_LEFT),
+                    'aerolinea' => $airlineCode,
+                    'matricula' => $aircraft['matricula'],
+                    'ruta' => $route['codigo'],
+                    'estado' => $state,
+                    'dias' => 1 + (($airlineIndex + $routeIndex) % 6),
+                    'hora' => $hour,
+                    'minuto' => $minute,
+                    'terminal' => 'T' . (1 + (($airlineIndex + $routeIndex) % 4)),
+                    'puerta' => chr(65 + (($airlineIndex + $routeIndex) % 6)) . (2 + (($airlineIndex + $routeIndex) % 8)),
+                    'observaciones' => sprintf(
+                        'Vuelo demo de %s operando la ruta %s.',
+                        $definition['nombre'],
+                        $route['codigo']
+                    ),
+                    'factor_tarifa' => 1 + ((($airlineIndex + $routeIndex) % 4) * 0.03),
+                    'ajuste_minutos' => $state === 'demorado' ? 20 : 0,
+                ];
+            }
+        }
+
+        return $generatedFlights;
+    }
+
+    private function selectPreferredRoutesForCountry(string $country, array $routeCatalog): array
+    {
+        $compatibleRoutes = array_values(array_filter($routeCatalog, function (array $route) use ($country) {
+            if ($route['tipo_operacion'] === 'nacional') {
+                return $route['pais_origen'] === $country && $route['pais_destino'] === $country;
+            }
+
+            return $route['pais_origen'] === $country || $route['pais_destino'] === $country;
+        }));
+
+        usort($compatibleRoutes, function (array $left, array $right) use ($country) {
+            $leftScore = $this->routePriorityForCountry($country, $left);
+            $rightScore = $this->routePriorityForCountry($country, $right);
+
+            if ($leftScore !== $rightScore) {
+                return $rightScore <=> $leftScore;
+            }
+
+            return strcmp($left['codigo'], $right['codigo']);
+        });
+
+        return $compatibleRoutes;
+    }
+
+    private function routePriorityForCountry(string $country, array $route): int
+    {
+        $score = 0;
+
+        if ($route['tipo_operacion'] === 'nacional') {
+            $score += 8;
+        }
+
+        if ($route['tipo_operacion'] === 'internacional') {
+            $score += 4;
+        }
+
+        if ($route['pais_origen'] === $country) {
+            $score += 5;
+        }
+
+        if ($route['pais_destino'] === $country) {
+            $score += 4;
+        }
+
+        return $score;
+    }
+
+    private function selectAircraftForRoute(array $aircraft, float $distanceKm, int $routeIndex): ?array
+    {
+        $eligibleAircraft = array_values(array_filter($aircraft, function (array $item) use ($distanceKm) {
+            return ($item['estado'] ?? 'activo') === 'activo'
+                && (float) $item['alcance_km'] >= $distanceKm + 350;
+        }));
+
+        if (count($eligibleAircraft) === 0) {
+            return null;
+        }
+
+        usort($eligibleAircraft, fn (array $left, array $right) => $left['alcance_km'] <=> $right['alcance_km']);
+
+        return $eligibleAircraft[min($routeIndex, count($eligibleAircraft) - 1)];
+    }
+
     private function passengerDefinitions(): array
     {
         $firstNames = [
@@ -614,10 +848,10 @@ class DatosDemoSeeder extends Seeder
         $documentTypes = ['CI', 'Pasaporte', 'DNI'];
         $rows = [];
 
-        for ($index = 0; $index < 36; $index++) {
+        for ($index = 0; $index < 72; $index++) {
             $type = $documentTypes[$index % count($documentTypes)];
-            $firstName = $firstNames[$index];
-            $lastNameA = $lastNames[$index];
+            $firstName = $firstNames[$index % count($firstNames)];
+            $lastNameA = $lastNames[$index % count($lastNames)];
             $lastNameB = $lastNames[($index + 7) % count($lastNames)];
             $document = $type === 'Pasaporte'
                 ? 'PA' . str_pad((string) (930000 + $index), 6, '0', STR_PAD_LEFT)
