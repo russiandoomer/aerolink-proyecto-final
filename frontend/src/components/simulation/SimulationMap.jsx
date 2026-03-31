@@ -274,12 +274,15 @@ export default function SimulationMap({
     const destinationInfoLine = `${destinationAirport.ciudad}, ${destinationAirport.pais}`;
     const originInfoDotX = resolveInfoDotX(originInfoLine);
     const destinationInfoDotX = resolveInfoDotX(destinationInfoLine);
-    const compactIcons = routeDurationMinutes > 0 && routeDurationMinutes <= 300;
-    const markerRadius = compactIcons ? 5.5 : 8;
-    const pulseRadius = compactIcons ? 12 : 18;
-    const planeGlowRadius = compactIcons ? 9 : 14;
-    const planeCoreRadius = compactIcons ? 8.5 : 12;
-    const planeFontSize = compactIcons ? 15 : 20;
+    const isVeryShortRoute = routeDurationMinutes > 0 && routeDurationMinutes <= 120;
+    const isShortRoute = routeDurationMinutes > 120 && routeDurationMinutes <= 300;
+    const markerRadius = isVeryShortRoute ? 3.2 : isShortRoute ? 4.4 : 8;
+    const pulseRadius = isVeryShortRoute ? 6.5 : isShortRoute ? 9.5 : 18;
+    const planeGlowRadius = isVeryShortRoute ? 5.2 : isShortRoute ? 7.2 : 14;
+    const planeCoreRadius = isVeryShortRoute ? 4.8 : isShortRoute ? 6.4 : 12;
+    const planeFontSize = isVeryShortRoute ? 9 : isShortRoute ? 12 : 20;
+    const planeStrokeWidth = isVeryShortRoute ? 1 : isShortRoute ? 1.2 : 1.6;
+    const pulseOpacity = isVeryShortRoute ? 0.12 : isShortRoute ? 0.18 : undefined;
     const phaseLabel =
         phase === 'running'
             ? 'EN RUTA'
@@ -429,6 +432,7 @@ export default function SimulationMap({
                     cy={start.y}
                     r={pulseRadius}
                     className="simulation-board__pulse simulation-board__pulse-origin"
+                    style={pulseOpacity ? { opacity: pulseOpacity } : undefined}
                 />
                 <circle
                     cx={end.x}
@@ -441,6 +445,7 @@ export default function SimulationMap({
                     cy={end.y}
                     r={pulseRadius}
                     className="simulation-board__pulse simulation-board__pulse-destination"
+                    style={pulseOpacity ? { opacity: pulseOpacity } : undefined}
                 />
 
                 <circle
@@ -451,7 +456,11 @@ export default function SimulationMap({
                 />
 
                 <g transform={`translate(${current.x} ${current.y}) rotate(${angle})`}>
-                    <circle r={planeCoreRadius} className="simulation-board__plane-core" />
+                    <circle
+                        r={planeCoreRadius}
+                        className="simulation-board__plane-core"
+                        style={{ strokeWidth: planeStrokeWidth }}
+                    />
                     <text
                         className="simulation-board__plane-icon"
                         style={{ fontSize: `${planeFontSize}px` }}
