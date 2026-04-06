@@ -76,6 +76,10 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
+function scaleForZoom(value, factor, min) {
+    return Math.max(min, value * factor);
+}
+
 function resolveInfoDotX(label) {
     return clamp(14 + label.length * 5.15 + 9, 118, 172);
 }
@@ -276,12 +280,22 @@ export default function SimulationMap({
     const destinationInfoDotX = resolveInfoDotX(destinationInfoLine);
     const isVeryShortRoute = routeDurationMinutes > 0 && routeDurationMinutes <= 120;
     const isShortRoute = routeDurationMinutes > 120 && routeDurationMinutes <= 300;
-    const markerRadius = isVeryShortRoute ? 3.2 : isShortRoute ? 4.4 : 8;
-    const pulseRadius = isVeryShortRoute ? 6.5 : isShortRoute ? 9.5 : 18;
-    const planeGlowRadius = isVeryShortRoute ? 5.2 : isShortRoute ? 7.2 : 14;
-    const planeCoreRadius = isVeryShortRoute ? 4.8 : isShortRoute ? 6.4 : 12;
-    const planeFontSize = isVeryShortRoute ? 9 : isShortRoute ? 12 : 20;
-    const planeStrokeWidth = isVeryShortRoute ? 1 : isShortRoute ? 1.2 : 1.6;
+    const baseMarkerRadius = isVeryShortRoute ? 3.2 : isShortRoute ? 4.4 : 8;
+    const basePulseRadius = isVeryShortRoute ? 6.5 : isShortRoute ? 9.5 : 18;
+    const basePlaneGlowRadius = isVeryShortRoute ? 5.2 : isShortRoute ? 7.2 : 14;
+    const basePlaneCoreRadius = isVeryShortRoute ? 4.8 : isShortRoute ? 6.4 : 12;
+    const basePlaneFontSize = isVeryShortRoute ? 9 : isShortRoute ? 12 : 20;
+    const basePlaneStrokeWidth = isVeryShortRoute ? 1 : isShortRoute ? 1.2 : 1.6;
+    const zoomVisualFactor =
+        viewMode === VIEW_MODE.FOCUSED
+            ? clamp(1 - (zoomLevel - 1) * 0.06, 0.38, 1)
+            : 1;
+    const markerRadius = scaleForZoom(baseMarkerRadius, zoomVisualFactor, 1.8);
+    const pulseRadius = scaleForZoom(basePulseRadius, zoomVisualFactor, 4.2);
+    const planeGlowRadius = scaleForZoom(basePlaneGlowRadius, zoomVisualFactor, 3.2);
+    const planeCoreRadius = scaleForZoom(basePlaneCoreRadius, zoomVisualFactor, 3);
+    const planeFontSize = scaleForZoom(basePlaneFontSize, zoomVisualFactor, 7.2);
+    const planeStrokeWidth = scaleForZoom(basePlaneStrokeWidth, zoomVisualFactor, 0.75);
     const pulseOpacity = isVeryShortRoute ? 0.12 : isShortRoute ? 0.18 : undefined;
     const phaseLabel =
         phase === 'running'
